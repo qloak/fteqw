@@ -19,6 +19,15 @@ You do not need to configure. The makefile will automatically do that depending 
 
 
 
+Experimental UWP bring-up:
+See `docs/UWP.md` for the current WinRT/UWP notes, including the
+`engine/client/sys_winrt.cpp` platform layer that now captures the CoreWindow,
+bridges logging/timing and routes sandbox file access.  Use the bundled
+`CMakePresets.json` (for example `cmake --preset uwp-x64` followed by
+`cmake --build --preset uwp-x64-release`) or `make FTE_TARGET=uwp gl-rel` to
+drive the UWP configuration.
+
+
 Easy Build Bot System:
 If you want to set up a linux box that cross-compiles each target with your own private customisations, then you can run the build_setup.sh script to set up which targets you wish to support.
 You can then just run the build_wip.sh script any time your code changes to have it rebuild every target you previously picked.
