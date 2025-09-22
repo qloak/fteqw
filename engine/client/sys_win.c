@@ -50,41 +50,108 @@ static void Sys_InitClock(void);
 static void Sys_ClockType_Changed(cvar_t *var, char *oldval);
 static void Sys_ClockPrecision_Changed(cvar_t *var, char *oldval);
 
-#ifdef WINRT	//you're going to need a different sys_ port.
+#ifdef WINRT    //you're going to need a different sys_ port.
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 qboolean isDedicated = false;
-void VARGS Sys_Error (const char *error, ...){}	//eep
-void VARGS Sys_Printf (char *fmt, ...){}		//safe, but not ideal (esp for debugging)
-void Sys_SendKeyEvents (void){}					//safe, but not ideal
-void Sys_ServerActivity(void){}					//empty is safe
-void Sys_RecentServer(char *command, char *target, char *title, char *desc){}	//empty is safe
-qboolean Sys_InitTerminal(void){return false;}	//failure will break 'setrenderer sv'
-char *Sys_ConsoleInput (void){return NULL;}		//safe to stub
-void Sys_CloseTerminal (void){}					//called when switching from dedicated->non-dedicated
-dllhandle_t *Sys_LoadLibrary(const char *name, dllfunction_t *funcs){return NULL;}	//can just about get away with it
+
+static void SysWinRT_DebugPrint(const char *prefix, const char *message)
+{
+	if (!message)
+		return;
+	if (prefix && *prefix)
+		fprintf(stderr, "%s%s\n", prefix, message);
+	else
+		fprintf(stderr, "%s\n", message);
+	fflush(stderr);
+}
+
+static void SysWinRT_Logf(const char *prefix, const char *fmt, va_list ap)
+{
+	char buffer[1024];
+	Q_vsnprintfz(buffer, sizeof(buffer), fmt, ap);
+	SysWinRT_DebugPrint(prefix, buffer);
+}
+
+void VARGS Sys_Error (const char *error, ...)
+{
+	va_list argptr;
+	va_start(argptr, error);
+	SysWinRT_Logf("Sys_Error: ", error, argptr);
+	va_end(argptr);
+
+	Host_Shutdown();
+	abort();
+}
+
+void VARGS Sys_Printf (char *fmt, ...)
+{
+	va_list argptr;
+	va_start(argptr, fmt);
+	SysWinRT_Logf("", fmt, argptr);
+	va_end(argptr);
+}
+
+void Sys_SendKeyEvents (void){}
+void Sys_ServerActivity(void){}
+void Sys_RecentServer(char *command, char *target, char *title, char *desc){}
+qboolean Sys_InitTerminal(void){return false;}
+char *Sys_ConsoleInput (void){return NULL;}
+void Sys_CloseTerminal (void){}
+dllhandle_t *Sys_LoadLibrary(const char *name, dllfunction_t *funcs){return NULL;}
 void *Sys_GetAddressForName(dllhandle_t *module, const char *exportname){return NULL;}
-void Sys_CloseLibrary(dllhandle_t *lib){}		//safe, ish
-void Sys_Init (void){}							//safe, stub is fine. used to register system-specific cvars/commands.
-void Sys_Shutdown(void){}						//safe
-qboolean Sys_RandomBytes(qbyte *string, int len){return false;}
+void Sys_CloseLibrary(dllhandle_t *lib){}
+
+static qboolean syswinrt_rngseeded;
+void Sys_Init (void)
+{
+	if (!syswinrt_rngseeded)
+	{
+		syswinrt_rngseeded = true;
+		srand((unsigned int)time(NULL));
+	}
+	SysWinRT_DebugPrint("Sys_Init: ", "WinRT stubs active");
+}
+
+void Sys_Shutdown(void){}
+
+qboolean Sys_RandomBytes(qbyte *string, int len)
+{
+	int i;
+	if (!syswinrt_rngseeded)
+	{
+		syswinrt_rngseeded = true;
+		srand((unsigned int)time(NULL));
+	}
+	if (!string || len <= 0)
+		return false;
+	for (i = 0; i < len; ++i)
+		string[i] = (qbyte)(rand() & 0xff);
+	return true;
+}
+
 qboolean Sys_GetDesktopParameters(int *width, int *height, int *bpp, int *refreshrate){return false;}
-void INS_Move(void){}							//safe
-void INS_Commands(void){}						//safe
-void INS_Init(void){}							//safe. should be xinput2 I guess. nothing else is actually supported. touchscreens don't really count.
-void INS_ReInit(void){}							//safe
-void INS_Shutdown(void){}						//safe
-void INS_UpdateGrabs(int fullscreen, int activeapp){}	//safe
-void *RT_GetCoreWindow(int *width, int *height){return NULL;}	//I already wrote the d3d11 code, but it needs a window to attach to. you can override width+height by writing to them
-void D3D11_DoResize(int newwidth, int newheight);	//already written, call if resized since getcorewindow
+void INS_Move(void){}
+void INS_Commands(void){}
+void INS_Init(void){}
+void INS_ReInit(void){}
+void INS_Shutdown(void){}
+void INS_UpdateGrabs(int fullscreen, int activeapp){}
+void *RT_GetCoreWindow(int *width, int *height){return NULL;}
+void D3D11_DoResize(int newwidth, int newheight);
 
 static char *clippy;
 void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, char *utf8), void *ctx)
 {
-	callback(ctx, clippy);
+	if (callback)
+		callback(ctx, clippy);
 }
 void Sys_SaveClipboard(clipboardtype_t cbt, char *text)
 {
 	if (cbt != CBT_CLIPBOARD)
-		return;	//don't copy on mere selection. windows users won't expect it.
+		return;
 	Z_Free(clippy);
 	clippy = Z_StrDup(text);
 }
@@ -97,28 +164,29 @@ unsigned int Sys_Milliseconds(void)
 	if (!timeinited)
 	{
 		timeinited = true;
-		QueryPerformanceFrequency(&timefreq); 
+		QueryPerformanceFrequency(&timefreq);
 		QueryPerformanceCounter(&timestart);
 	}
 	QueryPerformanceCounter(&cur);
 	diff.QuadPart = cur.QuadPart - timestart.QuadPart;
 	diff.QuadPart *= 1000;
 	diff.QuadPart /= timefreq.QuadPart;
-	return diff.QuadPart;
+	return (unsigned int)diff.QuadPart;
 }
+
 double Sys_DoubleTime (void)
 {
 	LARGE_INTEGER cur, diff;
 	if (!timeinited)
 	{
 		timeinited = true;
-		QueryPerformanceFrequency(&timefreq); 
+		QueryPerformanceFrequency(&timefreq);
 		QueryPerformanceCounter(&timestart);
 	}
 	QueryPerformanceCounter(&cur);
 	diff.QuadPart = cur.QuadPart - timestart.QuadPart;
 	diff.QuadPart *= 1000;
-	return (double)diff.QuadPart / (double)timefreq.QuadPart;	//I hope the timefreq doesn't get rounded and cause milliseconds and doubletime to start to drift apart.
+	return (double)diff.QuadPart / (double)timefreq.QuadPart;
 }
 
 void Sys_Quit (void)
@@ -129,176 +197,49 @@ void Sys_Quit (void)
 
 void Sys_mkdir (const char *path)
 {
-	wchar_t wide[MAX_OSPATH];
-	widen(wide, sizeof(wide), path);
-	CreateDirectoryW(wide, NULL);
+        SysWinRT_DebugPrint("Sys_mkdir: ", path ? path : "(null)");
 }
+
 qboolean Sys_rmdir (const char *path)
 {
-	RemoveDirectoryW(wide)
-
-	if (rmdir (path) == 0)
-		return true;
-	if (errno == ENOENT)
-		return true;
-	return false;
+        SysWinRT_DebugPrint("Sys_rmdir unsupported: ", path ? path : "(null)");
+        return false;
 }
 
 qboolean Sys_remove (const char *path)
 {
-	wchar_t wide[MAX_OSPATH];
-	widen(wide, sizeof(wide), path);
-	if (DeleteFileW(wide))
-		return true;	//success
-	if (GetLastError() == ERROR_FILE_NOT_FOUND)
-		return true;	//succeed when the file already didn't exist
-	return false;		//other errors? panic
+	if (!path)
+		return false;
+	return remove(path) == 0;
 }
 
 qboolean Sys_Rename (const char *oldfname, const char *newfname)
 {
-	wchar_t oldwide[MAX_OSPATH];
-	wchar_t newwide[MAX_OSPATH];
-	widen(oldwide, sizeof(oldwide), oldfname);
-	widen(newwide, sizeof(newwide), newfname);
-	return MoveFileExW(oldwide, newwide, MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED);
+	if (!oldfname || !newfname)
+		return false;
+	return rename(oldfname, newfname) == 0;
 }
 
-//enumeratefiles is recursive for */* to work
 static int Sys_EnumerateFiles2 (const char *match, int matchstart, int neststart, int (QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
 {
-	qboolean go;
-
-	HANDLE r;
-	WIN32_FIND_DATAW fd;
-	int nest = neststart;	//neststart refers to just after a /
-	qboolean wild = false;
-
-	while(match[nest] && match[nest] != '/')
-	{
-		if (match[nest] == '?' || match[nest] == '*')
-			wild = true;
-		nest++;
-	}
-	if (match[nest] == '/')
-	{
-		char submatch[MAX_OSPATH];
-		char tmproot[MAX_OSPATH];
-
-		if (!wild)
-			return Sys_EnumerateFiles2(match, matchstart, nest+1, func, parm, spath);
-
-		if (nest-neststart+1> MAX_OSPATH)
-			return 1;
-		memcpy(submatch, match+neststart, nest - neststart);
-		submatch[nest - neststart] = 0;
-		nest++;
-
-		if (neststart+4 > MAX_OSPATH)
-			return 1;
-		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
-
-		{
-			wchar_t wroot[MAX_OSPATH];
-			r = FindFirstFileExW(widen(wroot, sizeof(wroot), tmproot), FindExInfoStandard, &fd, FindExSearchNameMatch, NULL, 0);
-		}
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
-			return 1;
-		go = true;
-		do
-		{
-			char utf8[MAX_OSPATH];
-			char file[MAX_OSPATH];
-			narrowen(utf8, sizeof(utf8), fd.cFileName);
-			if (*utf8 == '.');	//don't ever find files with a name starting with '.'
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
-			{
-				if (wildcmp(submatch, utf8))
-				{
-					int newnest;
-					if (strlen(tmproot) + strlen(utf8) + strlen(match+nest) + 2 < MAX_OSPATH)
-					{
-						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot, utf8);
-						newnest = strlen(file);
-						strcpy(file+newnest, match+nest);
-						go = Sys_EnumerateFiles2(file, matchstart, newnest, func, parm, spath);
-					}
-				}
-			}
-		} while(FindNextFileW(r, &fd) && go);
-		FindClose(r);
-	}
-	else
-	{
-		const char *submatch = match + neststart;
-		char tmproot[MAX_OSPATH];
-
-		if (neststart+4 > MAX_OSPATH)
-			return 1;
-		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
-
-		{
-			wchar_t wroot[MAX_OSPATH];
-			r = FindFirstFileExW(widen(wroot, sizeof(wroot), tmproot), FindExInfoStandard, &fd, FindExSearchNameMatch, NULL, 0);
-		}
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
-			return 1;
-		go = true;
-		do
-		{
-			char utf8[MAX_OSPATH];
-			char file[MAX_OSPATH];
-
-			narrowen(utf8, sizeof(utf8), fd.cFileName);
-			if (*utf8 == '.')
-				;	//don't ever find files with a name starting with '.' (includes .. and . directories, and unix hidden files)
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
-			{
-				if (wildcmp(submatch, utf8))
-				{
-					if (strlen(tmproot+matchstart) + strlen(utf8) + 2 < MAX_OSPATH)
-					{
-						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot+matchstart, utf8);
-						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), 0, parm, spath);
-					}
-				}
-			}
-			else
-			{
-				if (wildcmp(submatch, utf8))
-				{
-					if (strlen(tmproot+matchstart) + strlen(utf8) + 1 < MAX_OSPATH)
-					{
-						Q_snprintfz(file, sizeof(file), "%s%s", tmproot+matchstart, utf8);
-						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), 0, parm, spath);
-					}
-				}
-			}
-		} while(FindNextFileW(r, &fd) && go);
-		FindClose(r);
-	}
-	return go;
+	(void)match;
+	(void)matchstart;
+	(void)neststart;
+	(void)func;
+	(void)parm;
+	(void)spath;
+	return 0;
 }
+
 int Sys_EnumerateFiles (const char *gpath, const char *match, int (QDECL *func)(const char *fname, qofs_t fsize, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
 {
-	char fullmatch[MAX_OSPATH];
-	int start;
-	if (strlen(gpath) + strlen(match) + 2 > MAX_OSPATH)
-		return 1;
-
-	strcpy(fullmatch, gpath);
-	start = strlen(fullmatch);
-	if (start && fullmatch[start-1] != '/')
-		fullmatch[start++] = '/';
-	fullmatch[start] = 0;
-	strcat(fullmatch, match);
-	return Sys_EnumerateFiles2(fullmatch, start, start, func, parm, spath);
+	(void)gpath;
+	(void)match;
+	(void)func;
+	(void)parm;
+	(void)spath;
+	return 0;
 }
-
 #else
 
 #if defined(GLQUAKE)
