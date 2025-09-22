@@ -20,8 +20,13 @@ You do not need to configure. The makefile will automatically do that depending 
 
 
 Experimental UWP bring-up:
-See `docs/UWP.md` for the current WinRT/UWP notes and the list of outstanding
-tasks required before an Xbox Dev Mode build will run.
+See `docs/UWP.md` for the current WinRT/UWP notes, including the
+`engine/client/sys_winrt.cpp` platform layer that now captures the CoreWindow,
+bridges logging/timing and routes sandbox file access. Use the bundled
+`CMakePresets.json` (for example `cmake --preset uwp-x64` followed by
+`cmake --build --preset uwp-x64-release`) or `make FTE_TARGET=uwp gl-rel` to
+drive the UWP configuration. Note that some outstanding tasks remain before an
+Xbox Dev Mode build will run successfully.
 
 
 Easy Build Bot System:

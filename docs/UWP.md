@@ -1,67 +1,123 @@
 # Experimental WinRT/UWP Notes
 
-This repository ships with an (extremely) thin WinRT stub that can be used as a
-starting point for a Universal Windows Platform port.  The stub lives inside
-`engine/client/sys_win.c` behind the `WINRT` preprocessor guard and now avoids
-most of the Win32-only APIs (file system, clipboard, console and library
-loading are all reduced to inert placeholders).  As a result the code can be
-compiled with the Windows Store toolset without tripping the store validation
-that forbids classic Win32 entry points.
+This document covers the current state of the FTEQW Universal Windows Platform
+bring-up. The port is still experimental and incomplete, but the foundations are
+in place for further work.
 
-> ⚠️ **Status:** the engine is **not** playable on UWP yet.  Window creation,
+---
+
+## Quickstart (UWP)
+
+```powershell
+# Configure with preset
+cmake --preset uwp-x64
+cmake --build --preset uwp-x64-debug
+
+# Or use the legacy makefile workflow
+make FTE_TARGET=uwp gl-rel   # release
+make FTE_TARGET=uwp gl-dbg   # debug
+
+# Then open the solution in Visual Studio for deployment/debugging
+```
+
+At this point the project should compile, but runtime functionality is **very
+limited** (see below).
+
+---
+
+## System Layer
+
+FTE now ships with a dedicated WinRT system layer in
+`engine/client/sys_winrt.cpp`. The module replaces the old stub inside
+`sys_win.c` and provides a minimal but functional bridge between the engine and
+the Windows Runtime so that the project can be compiled – and partially run –
+under the Windows Store toolset without triggering desktop-only API checks.
+
+The old stub under the `WINRT` preprocessor guard is still referenced for
+remaining unported subsystems (filesystem, clipboard, console, library loading,
+etc.), which are reduced to placeholders until full WinRT support is written.
+
+> ⚠️ **Status:** the engine is **not** playable on UWP yet. Window creation,
 > input, audio, swap-chain handling, threading and sandbox storage still need
 > dedicated implementations before an Xbox Dev Mode build can boot.
 
-## Configuring a UWP build
+---
 
-1. Install Visual Studio 2022 (or newer) with the "Universal Windows Platform
-   development" workload and the latest Windows 10/11 SDK.
-2. Generate a build directory that targets the Windows Store toolchain, for
-   example:
+## Configuring a UWP Build
 
-   ```powershell
-   cmake -S . -B build-uwp \
-     -G "Visual Studio 17 2022" -A x64 \
-     -DCMAKE_SYSTEM_NAME=WindowsStore \
-     -DCMAKE_SYSTEM_VERSION=10.0
-   ```
-3. Force the UWP-oriented code path by defining `WINRT` for both C and C++
-   sources.  With CMake you can inject the define via cache entries:
+1. Install Visual Studio 2022 (or newer) with the **Universal Windows Platform
+   development** workload and the latest Windows 10/11 SDK.
+
+2. Configure the project with the bundled preset, e.g.:
 
    ```powershell
-   cmake --build build-uwp --config Debug \
-     -- /p:C_FLAGS="/DWINRT" /p:CXX_FLAGS="/DWINRT"
+   cmake --preset uwp-x64
+   cmake --build --preset uwp-x64-debug
    ```
 
-   Alternatively, set `CMAKE_C_FLAGS`/`CMAKE_CXX_FLAGS` during the generation
-   step if you prefer a persistent configuration.
-4. Open the generated solution in Visual Studio and choose the `Debug`/`Release`
-   configuration paired with the desired architecture (x64, ARM64, …).  At this
-   point the project should compile far enough to surface the remaining
-   platform TODOs.
+   The presets automatically:
 
-## What the new stub covers
+   * set `CMAKE_SYSTEM_NAME=WindowsStore`
+   * inject the `WINRT` define for C/C++ sources
+   * mark the toolchain as cross-compiling (so CMake does not attempt to run host binaries)
 
-* Replaces Win32 file, clipboard and library calls with inert implementations
-  that simply log to the Visual Studio output window/terminal.
-* Provides deterministic timing through `QueryPerformanceCounter`, matching the
-  desktop build so that higher level subsystems continue to function while the
-  real UWP windowing layer is being developed.
-* Supplies a basic (non-cryptographic) random byte generator so subsystems that
-  expect `Sys_RandomBytes` do not crash during bring-up.
+   If you prefer the legacy makefile workflow, you can drive the same presets
+   via:
 
-## Outstanding work before the port runs
+   ```powershell
+   make FTE_TARGET=uwp gl-rel   # release
+   make FTE_TARGET=uwp gl-dbg   # debug
+   ```
 
-* Implement a `CoreWindow`/`SwapChainPanel` presentation path for the D3D11
-  renderer (`engine/d3d/vid_d3d11.c`).
-* Replace the remaining Win32 threading, input, networking and audio backends
-  with WinRT-friendly equivalents (see the `WINRT` stubs referenced throughout
-  the tree via `rg WINRT`).
-* Rework the filesystem layer to read/write inside `ApplicationData` and expose
-  user-selectable folders via the UWP file pickers.
-* Produce an AppX/MSIX packaging workflow and document the steps needed to
-  deploy the build through the Xbox Device Portal.
+3. Open the generated solution in Visual Studio and choose the `Debug`/`Release`
+   configuration paired with the desired architecture (x64, ARM64, …). The
+   project should compile far enough to surface the remaining platform TODOs.
 
-This document will evolve as additional pieces of the port land.  Contributions
-that replace the placeholders above are welcome—just keep the sandbox
+---
+
+## What Now Works
+
+* **Logging & errors**: messages flow to both the Visual Studio output window
+  and `stderr`, mirroring the desktop developer experience while running inside
+  the sandbox.
+* **Initialization**: `Sys_Init` brings up a single-threaded WinRT apartment,
+  captures the `CoreWindow` for the current view, and keeps its `IUnknown`
+  alive so `vid_d3d11.c` can create a `SwapChainForCoreWindow`. Resize and DPI
+  change notifications are forwarded to `D3D11_DoResize`.
+* **Input events**: `Sys_SendKeyEvents` processes the CoreDispatcher event queue
+  every frame so input backends can attach to WinRT messages once implemented.
+* **Timers**: high-resolution timers (`Sys_Milliseconds`, `Sys_DoubleTime`)
+  rely on `QueryPerformanceCounter`, avoiding jitter.
+* **Filesystem helpers**: (`Sys_mkdir`, `Sys_remove`, `Sys_rmdir`, `Sys_Rename`)
+  resolve paths into `ApplicationData::Current().LocalFolder()` and operate on
+  UTF-8 filenames through the Win32-on-UWP shims.
+* **Dynamic libraries**: `Sys_LoadLibrary` calls `LoadPackagedLibrary` so DLLs
+  bundled in the package can be discovered.
+* **Entropy**: `Sys_RandomBytes` pulls randomness from the system RNG via
+  `BCryptGenRandom`.
+
+---
+
+## Outstanding Work Before the Port Runs
+
+* Harden the Direct3D 11 path for the full UWP lifecycle (suspend/resume,
+  visibility changes, device-loss) and hook `Present1`/`Validate` to obey Store
+  submission rules.
+* Replace remaining Win32 subsystems:
+
+  * threading
+  * input
+  * networking
+  * audio
+* Harden the filesystem backends to cope with UWP's async-only APIs and expose
+  file pickers for content outside the sandbox when necessary.
+* Produce an AppX/MSIX packaging workflow and document deployment steps through
+  the Xbox Device Portal.
+
+---
+
+## Contributing
+
+This document will evolve as additional pieces of the port land. Contributions
+that replace the placeholders above are welcome — just keep the sandbox
 restrictions in mind when adding new APIs.

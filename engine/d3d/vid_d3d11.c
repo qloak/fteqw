@@ -681,14 +681,20 @@ void D3D11_DoResize(int newwidth, int newheight)
 {
 	d3d_resized = true;
 
-//	Con_Printf("Resizing buffer to %i*%i\n", vid.pixelwidth, vid.pixelheight);
+	if (newwidth < 1)
+		newwidth = 1;
+	if (newheight < 1)
+		newheight = 1;
+	vid.pixelwidth = newwidth;
+	vid.pixelheight = newheight;
+
 	released3dbackbuffer();
 	if (d3dswapchain)
 	{
-		IDXGISwapChain_ResizeBuffers(d3dswapchain, 0, vid.pixelwidth, vid.pixelheight, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+		IDXGISwapChain_ResizeBuffers(d3dswapchain, 0, newwidth, newheight, DXGI_FORMAT_UNKNOWN, 0);
 
 		D3D11BE_Reset(true);
-		resetd3dbackbuffer(vid.pixelwidth, vid.pixelheight);
+		resetd3dbackbuffer(newwidth, newheight);
 		D3D11BE_Reset(false);
 	}
 }

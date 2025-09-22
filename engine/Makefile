@@ -1,5 +1,9 @@
 #FTEQW Makefile
 
+ifeq ($(FTE_TARGET),uwp)
+include Makefile.uwp
+else
+
 #make m-rel plugins-rel sv-rel [FTE_TARGET=$ARCH]
 
 #only limited forms of cross-making is supported
@@ -2641,3 +2645,4 @@ version:
 	@echo $(SVN_DATE)
 	@echo $(FTE_CONFIG_EXTRA)
 
+endif
