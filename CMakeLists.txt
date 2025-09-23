@@ -50,6 +50,26 @@ IF(FTE_PLATFORM_UWP)
         SET(FTE_CSADDON false CACHE BOOL "CS Addon." FORCE)
 ENDIF()
 
+IF(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+        MESSAGE(STATUS "Configuring for Windows Store / UWP toolchain")
+        SET(FTE_PLATFORM_UWP TRUE)
+ENDIF()
+
+IF(FTE_PLATFORM_UWP)
+        ADD_DEFINITIONS(-DWINRT)
+        ADD_DEFINITIONS(-DHAVE_WEBSOCKCL)
+        SET(FTE_DEFINES ${FTE_DEFINES};WINRT)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};WINRT)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};WINRT)
+        SET(FTE_DEFINES ${FTE_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_ENGINE_SERVER_ONLY false CACHE BOOL "Compile fteqw-sv (server only) engine binary." FORCE)
+        SET(FTE_TOOL_MASTER false CACHE BOOL "Compile master server." FORCE)
+        SET(FTE_TOOL_QTV false CACHE BOOL "Compile qtv server." FORCE)
+        SET(FTE_TOOL_HTTPSV false CACHE BOOL "Compile small http server." FORCE)
+ENDIF()
+
 INCLUDE_DIRECTORIES(
 	engine/common
 	engine/client
@@ -474,6 +494,7 @@ IF(SDL3_FOUND)	#SDL3
                         engine/common/net_ssl_gnutls.c
                 )
                 SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+                
 			engine/common/net_ssl_gnutls.c
 			engine/common/sys_linux_threads.c
 			engine/server/sv_sys_unix.c
@@ -572,6 +593,7 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
                         engine/client/winquake.rc
                 )
         ENDIF()
+        
 ELSEIF(UNIX AND NOT FTE_USE_SDL)	#linux(ish)
 				#openbsd will have issues with snd_linux.c
 
@@ -952,6 +974,7 @@ ELSE()
 ENDIF()
 
 SET(FTE_SERVER_FILES
+
 	engine/server/net_preparse.c
 	engine/server/pr_cmds.c
 	engine/server/pr_lua.c

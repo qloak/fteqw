@@ -2031,6 +2031,7 @@ qboolean Sys_rmdir(const char *path)
         {
                 return false;
         }
+
 }
 
 qboolean Sys_remove(const char *path)
