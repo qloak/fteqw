@@ -170,7 +170,7 @@ struct pkgctx_s
 	} *classes;
 };
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 static time_t filetime_to_timet(FILETIME ft)
 {
 	ULARGE_INTEGER ull;
@@ -464,7 +464,7 @@ static void PKG_ParseOutput(struct pkgctx_s *ctx, pbool diff)
 	}
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 static void PKG_AddOldPack(struct pkgctx_s *ctx, const char *fname)
 {
 	struct oldpack_s *pack;
@@ -485,7 +485,7 @@ static void PKG_ParseOldPack(struct pkgctx_s *ctx)
 	if (!PKG_GetStringToken(ctx, token, sizeof(token)))
 		return;
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 	{
 		char oldpack[MAX_OSPATH];
 		WIN32_FIND_DATA fd;
@@ -657,7 +657,7 @@ static void PKG_AddClassFile(struct pkgctx_s *ctx, struct class_s *c, const char
 }
 static void PKG_AddClassFiles(struct pkgctx_s *ctx, struct class_s *c, const char *fname)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 	WIN32_FIND_DATA fd;
 	HANDLE h;
 	char basepath[MAX_PATH];
@@ -903,7 +903,7 @@ static unsigned int PKG_DeflateToFile(FILE *f, unsigned int rawsize, void *in, i
 }
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 static void StupidWindowsPopenAlternativeCrap(struct pkgctx_s *ctx, char *commandline)
 {
 	PROCESS_INFORMATION piProcInfo = {0}; 
@@ -1026,8 +1026,11 @@ static void *PKG_OpenSourceFile(struct pkgctx_s *ctx, struct file_s *file, size_
 //			ctx->messagecallback(ctx->userctx, "Commandline is %s\n", commandline);
 
 
-#ifdef _WIN32		//windows is so fucking useless sometimes. sure, _popen 'works'... its just perverse enough that its not an option, forcing system-specific crap in anything that isn't originally from unix... maybe it is just incompetence? still feels like malice to me.
+#if defined(_WIN32) && !defined(WINRT)		//windows is so fucking useless sometimes. sure, _popen 'works'... its just perverse enough that its not an option, forcing system-specific crap in anything that isn't originally from unix... maybe it is just incompetence? still feels like malice to me.
 			StupidWindowsPopenAlternativeCrap(ctx, commandline);
+#elif defined(WINRT)
+			ctx->messagecallback(ctx->userctx, "External commands are not supported on WinRT builds\n");
+			return NULL;
 #else
 			{
 				FILE *p;

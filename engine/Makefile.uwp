@@ -1,0 +1,37 @@
+# Simplified wrapper that proxies the classic make targets to the CMake UWP presets.
+
+CMAKE ?= cmake
+UWP_ARCH ?= x64
+UWP_CONFIG_PRESET ?= uwp-$(UWP_ARCH)
+UWP_BUILD_PRESET ?= uwp-$(UWP_ARCH)-release
+UWP_DEBUG_BUILD_PRESET ?= uwp-$(UWP_ARCH)-debug
+
+.PHONY: uwp-config uwp-build uwp-build-debug gl-rel gl-dbg sv-rel sv-dbg qcc-rel qcc-dbg clean distclean install
+
+uwp-config:
+	$(CMAKE) --preset $(UWP_CONFIG_PRESET)
+
+uwp-build: uwp-config
+	$(CMAKE) --build --preset $(UWP_BUILD_PRESET)
+
+uwp-build-debug: uwp-config
+	$(CMAKE) --build --preset $(UWP_DEBUG_BUILD_PRESET)
+
+# Map the traditional engine targets to the preset-driven build.
+# The preset currently produces the combined client/server binary, so these
+# rules all drive the same build step for now.
+gl-rel sv-rel qcc-rel: uwp-build
+
+# Debug variants rely on the debug build preset.
+gl-dbg sv-dbg qcc-dbg: uwp-build-debug
+
+clean:
+	-$(CMAKE) --build --preset $(UWP_BUILD_PRESET) --target clean
+	-$(CMAKE) --build --preset $(UWP_DEBUG_BUILD_PRESET) --target clean
+
+# Nothing is installed directly; defer to the generated Visual Studio solution.
+install:
+	@echo "Use Visual Studio's packaging workflow to generate an .msixbundle for deployment."
+
+distclean: clean
+	-$(CMAKE) --build --preset $(UWP_BUILD_PRESET) --target clean

@@ -354,9 +354,10 @@ static qboolean HTTP_DL_Work(struct dl_download *dl)
 	qboolean transfercomplete = false;
 
 #ifdef MULTITHREAD
-	//if we're running in a thread, wait for some actual activity instead of busylooping like an moron.
-	if (dl->threadctx)
-	{
+#ifndef WINRT
+        //if we're running in a thread, wait for some actual activity instead of busylooping like an moron.
+        if (dl->threadctx)
+        {
 #ifdef HAVE_EPOLL
 		struct pollfd fd;
 		fd.fd = con->sock;
@@ -381,7 +382,8 @@ static qboolean HTTP_DL_Work(struct dl_download *dl)
 			select(con->sock+1, &rdset, NULL, NULL, &timeout);	//wake when we can read.
 		//note that https should wake up more often, but we don't want to wake up because we *can* write when we're reading without any need to write.
 #endif
-	}
+        }
+#endif
 #endif
 
 	switch(con->state)
