@@ -8,6 +8,15 @@
 #include "resource.h"
 #include "vr.h"
 
+#ifdef WINRT
+#include <synchapi.h>
+#endif
+
+#ifndef SERVERONLY
+extern void R_RestartRenderer(rendererstate_t *newr);
+#endif
+extern int r_blockvidrestart;
+
 #define FUCKDXGI
 
 #define COBJMACROS
@@ -23,6 +32,7 @@ ID3D11DeviceContext *d3ddevctx;
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "D3D11.lib")
 #include "dxgi1_2.h"
+#include <dxgi1_3.h>
 #else
 
 /*Fixup outdated windows headers*/
@@ -70,6 +80,15 @@ IDXGISwapChain1 *d3dswapchain;
 IDXGISwapChain *d3dswapchain;
 #endif
 IDXGIOutput *d3dscreen;
+
+#ifdef WINRT
+static HANDLE d3d11_frame_latency_waitable;
+static qboolean d3d11_pending_device_reset;
+static HRESULT d3d11_pending_device_reason;
+static qboolean d3d11_pending_restart_warned;
+static DXGI_FRAME_STATISTICS d3d11_last_frame_stats;
+static double d3d11_last_telemetry_log;
+#endif
 
 ID3D11RenderTargetView *fb_backbuffer;
 ID3D11DepthStencilView *fb_backdepthstencil;
@@ -135,13 +154,155 @@ char *D3D_NameForResult(HRESULT hr)
 	}
 }
 
+#ifdef WINRT
+static void D3D11_ResetLatencyWaitable(void)
+{
+	if (d3d11_frame_latency_waitable)
+	{
+		CloseHandle(d3d11_frame_latency_waitable);
+		d3d11_frame_latency_waitable = NULL;
+	}
+}
+
+static void D3D11_RecordSwapChainStats(void)
+{
+	DXGI_FRAME_STATISTICS stats;
+	HRESULT hr;
+
+	if (!d3dswapchain)
+		return;
+
+	hr = IDXGISwapChain_GetFrameStatistics((IDXGISwapChain *)d3dswapchain, &stats);
+	if (SUCCEEDED(hr))
+	{
+		d3d11_last_frame_stats = stats;
+		if (r_speeds.ival >= 2)
+		{
+			double now = Sys_DoubleTime();
+			if (now - d3d11_last_telemetry_log > 1.0)
+			{
+				Con_DPrintf("DXGI stats: present=%u sync=%u refresh=%u qpc=%llu\n",
+					stats.PresentCount,
+					stats.SyncRefreshCount,
+					stats.PresentRefreshCount,
+					(unsigned long long)stats.SyncQPCTime.QuadPart);
+				d3d11_last_telemetry_log = now;
+			}
+		}
+	}
+	else if (hr == DXGI_ERROR_FRAME_STATISTICS_DISJOINT)
+	{
+		memset(&d3d11_last_frame_stats, 0, sizeof(d3d11_last_frame_stats));
+	}
+}
+
+static void D3D11_ScheduleDeviceReset(HRESULT reason)
+{
+	if (d3d11_pending_device_reset)
+		return;
+
+	d3d11_pending_device_reset = true;
+	d3d11_pending_device_reason = reason;
+	d3d11_pending_restart_warned = false;
+	memset(&d3d11_last_frame_stats, 0, sizeof(d3d11_last_frame_stats));
+	D3D11_ResetLatencyWaitable();
+	if (d3ddevctx)
+	{
+		ID3D11DeviceContext_ClearState(d3ddevctx);
+		ID3D11DeviceContext_Flush(d3ddevctx);
+	}
+	D3D11BE_Reset(true);
+	released3dbackbuffer();
+}
+
+static qboolean D3D11_TryFinishDeviceReset(void)
+{
+	if (!d3d11_pending_device_reset)
+		return true;
+
+	if (r_blockvidrestart || !currentrendererstate.renderer)
+	{
+		if (!d3d11_pending_restart_warned)
+		{
+			Con_Printf("D3D11 device lost (%s) but renderer restart is blocked; waiting...\n",
+				D3D_NameForResult(d3d11_pending_device_reason));
+			d3d11_pending_restart_warned = true;
+		}
+		return false;
+	}
+
+	d3d11_pending_device_reset = false;
+	{
+		rendererstate_t restart = currentrendererstate;
+		Con_Printf("Recreating D3D11 device after %s\n", D3D_NameForResult(d3d11_pending_device_reason));
+#ifndef SERVERONLY
+		R_RestartRenderer(&restart);
+#endif
+	}
+	return false;
+}
+#endif
+
+static qboolean D3D11_HandleDeviceLoss(HRESULT hr)
+{
+	if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+	{
+#ifdef WINRT
+		HRESULT reason = hr;
+		if (hr == DXGI_ERROR_DEVICE_REMOVED && pD3DDev11)
+			reason = ID3D11Device_GetDeviceRemovedReason(pD3DDev11);
+		Con_Printf("D3D11 device lost (%s); scheduling renderer restart\n", D3D_NameForResult(reason));
+		D3D11_ScheduleDeviceReset(reason);
+#else
+		Con_Printf("D3D11 device lost (%s); queuing vid_restart\n", D3D_NameForResult(hr));
+		Cbuf_AddText("vid_restart\n", RESTRICT_LOCAL);
+#endif
+		return true;
+	}
+	return false;
+}
+
 static void D3D11_PresentOrCrash(void)
 {
 	extern cvar_t vid_vsync;
 	RSpeedMark();
+#ifdef WINRT
+	DXGI_PRESENT_PARAMETERS params;
+	memset(&params, 0, sizeof(params));
+	UINT syncInterval = (UINT)max(0, vid_vsync.ival);
+	if (syncInterval > 4)
+		syncInterval = 4;
+	if (d3d11_frame_latency_waitable)
+	{
+		DWORD wait = WaitForSingleObjectEx(d3d11_frame_latency_waitable, 2000, FALSE);
+		if (wait == WAIT_TIMEOUT)
+			Con_DPrintf("DXGI frame latency wait timed out\n");
+		else if (wait == WAIT_FAILED)
+			Con_DPrintf("DXGI frame latency wait failed (%lu)\n", GetLastError());
+	}
+	HRESULT hr = IDXGISwapChain1_Present1(d3dswapchain, syncInterval, 0, &params);
+	if (hr == DXGI_STATUS_OCCLUDED)
+	{
+		RSpeedEnd(RSPEED_PRESENT);
+		return;
+	}
+	if (FAILED(hr))
+	{
+		if (!D3D11_HandleDeviceLoss(hr))
+			Sys_Error("IDXGISwapChain1_Present1: %s\n", D3D_NameForResult(hr));
+	}
+	else
+	{
+		D3D11_RecordSwapChainStats();
+	}
+#else
 	HRESULT hr = IDXGISwapChain_Present(d3dswapchain, max(0,vid_vsync.ival), 0);
 	if (FAILED(hr))
-		Sys_Error("IDXGISwapChain_Present: %s\n", D3D_NameForResult(hr));
+	{
+	        if (!D3D11_HandleDeviceLoss(hr))
+	                Sys_Error("IDXGISwapChain_Present: %s\n", D3D_NameForResult(hr));
+	}
+#endif
 	RSpeedEnd(RSPEED_PRESENT);
 }
 
@@ -691,12 +852,63 @@ void D3D11_DoResize(int newwidth, int newheight)
 	released3dbackbuffer();
 	if (d3dswapchain)
 	{
-		IDXGISwapChain_ResizeBuffers(d3dswapchain, 0, newwidth, newheight, DXGI_FORMAT_UNKNOWN, 0);
+	        HRESULT hr = IDXGISwapChain_ResizeBuffers(d3dswapchain, 0, newwidth, newheight, DXGI_FORMAT_UNKNOWN, 0);
+	        if (FAILED(hr))
+	        {
+	                if (!D3D11_HandleDeviceLoss(hr))
+	                        Con_Printf("IDXGISwapChain::ResizeBuffers failed: %s\n", D3D_NameForResult(hr));
+	                return;
+	        }
 
-		D3D11BE_Reset(true);
-		resetd3dbackbuffer(newwidth, newheight);
-		D3D11BE_Reset(false);
+	        D3D11BE_Reset(true);
+	        if (!resetd3dbackbuffer(newwidth, newheight))
+	                Con_Printf("Unable to rebuild backbuffer after resize\n");
+	        D3D11BE_Reset(false);
 	}
+}
+
+void D3D11_BeginSuspend(void)
+{
+	if (d3ddevctx)
+	        ID3D11DeviceContext_Flush(d3ddevctx);
+
+	D3D11BE_Reset(true);
+	released3dbackbuffer();
+
+	if (pD3DDev11)
+	{
+	        IDXGIDevice3 *device3 = NULL;
+	        if (SUCCEEDED(ID3D11Device_QueryInterface(pD3DDev11, &IID_IDXGIDevice3, (void **)&device3)))
+	        {
+	                IDXGIDevice3_Trim(device3);
+	                IDXGIDevice3_Release(device3);
+	        }
+	}
+}
+
+void D3D11_EndSuspend(void)
+{
+	if (!d3dswapchain)
+	        return;
+
+	UINT width = (vid.pixelwidth > 0) ? (UINT)vid.pixelwidth : 1;
+	UINT height = (vid.pixelheight > 0) ? (UINT)vid.pixelheight : 1;
+
+	HRESULT hr = IDXGISwapChain_ResizeBuffers(d3dswapchain, 0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+	if (FAILED(hr))
+	{
+	        if (!D3D11_HandleDeviceLoss(hr))
+	                Con_Printf("IDXGISwapChain::ResizeBuffers failed after resume: %s\n", D3D_NameForResult(hr));
+	        return;
+	}
+
+	D3D11BE_Reset(true);
+	if (!resetd3dbackbuffer(width, height))
+	{
+	        Con_Printf("Unable to rebuild backbuffer after resume\n");
+	        return;
+	}
+	D3D11BE_Reset(false);
 }
 void *RT_GetCoreWindow(int *width, int *height);
 static qboolean D3D11_VID_Init(rendererstate_t *info, unsigned char *palette)
@@ -751,6 +963,23 @@ static qboolean D3D11_VID_Init(rendererstate_t *info, unsigned char *palette)
 			Sys_Error("IDXGIFactory2_CreateSwapChainForCoreWindow failed\n");
 		else
 		{
+#ifdef WINRT
+			if (d3dswapchain)
+			{
+				IDXGISwapChain2 *swapchain2 = NULL;
+				if (SUCCEEDED(IDXGISwapChain1_QueryInterface(d3dswapchain, &IID_IDXGISwapChain2, (void **)&swapchain2)))
+				{
+					IDXGISwapChain2_SetMaximumFrameLatency(swapchain2, 1);
+					D3D11_ResetLatencyWaitable();
+					d3d11_frame_latency_waitable = IDXGISwapChain2_GetFrameLatencyWaitableObject(swapchain2);
+					IDXGISwapChain2_Release(swapchain2);
+				}
+				d3d11_pending_device_reset = false;
+				d3d11_pending_restart_warned = false;
+				memset(&d3d11_last_frame_stats, 0, sizeof(d3d11_last_frame_stats));
+				d3d11_last_telemetry_log = 0;
+			}
+#endif
 			vid.numpages = scd.BufferCount;
 			if (!resetd3dbackbuffer(info->width, info->height))
 				Sys_Error("unable to reset back buffer\n");
@@ -1243,6 +1472,12 @@ static void	 (D3D11_VID_DeInit)				(void)
 {
 	Image_Shutdown();
 
+#ifdef WINRT
+	D3D11_ResetLatencyWaitable();
+	d3d11_pending_device_reset = false;
+	d3d11_pending_restart_warned = false;
+#endif
+
 	/*we cannot shut down cleanly while in fullscreen, supposedly*/
 	if(d3dswapchain)
 		IDXGISwapChain_SetFullscreenState(d3dswapchain, false, NULL);
@@ -1417,6 +1652,11 @@ static qboolean	(D3D11_SCR_UpdateScreen)			(void)
 	//extern qboolean editormodal;
 #endif
 	qboolean nohud, noworld;
+
+#ifdef WINRT
+	if (!D3D11_TryFinishDeviceReset())
+		return false;
+#endif
 
 	if (r_clear.ival)
 	{

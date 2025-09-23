@@ -15,9 +15,13 @@ ENDIF()
 
 IF(FTE_PLATFORM_UWP)
         ADD_DEFINITIONS(-DWINRT)
+        ADD_DEFINITIONS(-DHAVE_WEBSOCKCL)
         SET(FTE_DEFINES ${FTE_DEFINES};WINRT)
         SET(FTESV_DEFINES ${FTESV_DEFINES};WINRT)
         SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};WINRT)
+        SET(FTE_DEFINES ${FTE_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};HAVE_WEBSOCKCL)
         SET(FTE_ENGINE_SERVER_ONLY false CACHE BOOL "Compile fteqw-sv (server only) engine binary." FORCE)
         SET(FTE_TOOL_MASTER false CACHE BOOL "Compile master server." FORCE)
         SET(FTE_TOOL_QTV false CACHE BOOL "Compile qtv server." FORCE)
@@ -472,25 +476,28 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
 	
 	#	engine/server/sv_sys_win.c
 	
+        SET(FTE_DEFINES ${FTE_DEFINES};D3D9QUAKE;D3D11QUAKE)
         IF(FTE_PLATFORM_UWP)
                 SET(FTE_LIBS ${FTE_LIBS} ${SYS_LIBS} d3d11 dxgi)
-        ELSE()
-                SET(FTE_LIBS ${FTE_LIBS} ole32 gdi32 wsock32 winmm dxguid)
-        ENDIF()
-        SET(FTE_DEFINES ${FTE_DEFINES};D3D9QUAKE;D3D11QUAKE)
-        SET(FTE_ARCH_FILES
-                engine/common/sys_win_threads.c
-                engine/common/net_ssl_winsspi.c
-                engine/common/net_ssl_gnutls.c
-                engine/common/fs_win32.c
-        )
-        IF(FTE_PLATFORM_UWP)
+                SET(FTE_ARCH_FILES
+                        engine/common/sys_winrt_threads.cpp
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/net_ssl_gnutls.c
+                        engine/common/fs_win32.c
+                )
                 LIST(APPEND FTE_ARCH_FILES
                         engine/client/cd_win.c
                         engine/client/snd_xaudio.c
                         engine/client/sys_winrt.cpp
                 )
         ELSE()
+                SET(FTE_LIBS ${FTE_LIBS} ole32 gdi32 wsock32 winmm dxguid)
+                SET(FTE_ARCH_FILES
+                        engine/common/sys_win_threads.c
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/net_ssl_gnutls.c
+                        engine/common/fs_win32.c
+                )
                 LIST(APPEND FTE_ARCH_FILES
                         engine/client/cd_win.c
                         engine/client/in_win.c
@@ -796,9 +803,8 @@ SET(FTE_COMMON_FILES
 	engine/common/mathlib.c
 	engine/common/md4.c
 	engine/common/md5.c
-	engine/common/net_chan.c
-	engine/common/net_ice.c
-	engine/common/net_wins.c
+        engine/common/net_chan.c
+        engine/common/net_ice.c
 	engine/common/plugin.c
 	engine/common/pmove.c
 	engine/common/pmovetst.c
@@ -912,8 +918,14 @@ SET(FTE_COMMON_FILES
 	${FTE_QCVM_FILES}
 	engine/qclib/hash.c
 	
-	engine/http/httpclient.c
+        engine/http/httpclient.c
 )
+
+IF(FTE_PLATFORM_UWP)
+        LIST(APPEND FTE_COMMON_FILES engine/common/net_winrt.cpp)
+ELSE()
+        LIST(APPEND FTE_COMMON_FILES engine/common/net_wins.c)
+ENDIF()
 
 SET(FTE_SERVER_FILES
 	engine/server/net_preparse.c

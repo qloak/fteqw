@@ -65,6 +65,9 @@ extern searchpathfuncs_t *(QDECL FSPAK_LoadArchive) (vfsfile_t *file, searchpath
 extern searchpathfuncs_t *(QDECL FSDWD_LoadArchive) (vfsfile_t *file, searchpathfuncs_t *parent, const char *filename, const char *desc, const char *prefix);
 extern searchpathfuncs_t *(QDECL FSDZ_LoadArchive)	(vfsfile_t *file, searchpathfuncs_t *parent, const char *filename, const char *desc, const char *prefix);
 vfsfile_t *QDECL VFSOS_Open(const char *osname, const char *mode);
+#ifdef WINRT
+vfsfile_t *VFSWinRT_Open(const char *osname, const char *mode);
+#endif
 vfsfile_t *FS_DecompressGZip(vfsfile_t *infile, vfsfile_t *outfile);
 
 int FS_RegisterFileSystemType(void *module, const char *extension, searchpathfuncs_t *(QDECL *OpenNew)(vfsfile_t *file, searchpathfuncs_t *parent, const char *filename, const char *desc, const char *prefix), qboolean loadscan);
