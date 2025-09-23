@@ -928,7 +928,7 @@ static void SysWinRT_InitRuntime()
         catch (const winrt::hresult_error &)
         {
         }
-
+  
         QueryPerformanceFrequency(&g_timeFreq);
         QueryPerformanceCounter(&g_timeStart);
         g_timeReady = true;
@@ -2031,6 +2031,7 @@ qboolean Sys_rmdir(const char *path)
         {
                 return false;
         }
+
 }
 
 qboolean Sys_remove(const char *path)
