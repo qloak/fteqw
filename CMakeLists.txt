@@ -13,6 +13,48 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
         SET(FTE_PLATFORM_UWP TRUE)
 ENDIF()
 
+SET(FTE_ENABLE_ZIP_PACKAGING TRUE)
+FIND_PROGRAM(ZIP_EXECUTABLE zip)
+IF(FTE_PLATFORM_UWP OR NOT ZIP_EXECUTABLE)
+        SET(FTE_ENABLE_ZIP_PACKAGING FALSE)
+ENDIF()
+IF(NOT FTE_ENABLE_ZIP_PACKAGING)
+        MESSAGE(STATUS "Disabling zip-based packaging targets (zip tool unavailable or not supported)")
+ENDIF()
+
+SET(FTE_ENABLE_I18N_TARGET TRUE)
+FIND_PROGRAM(XGETTEXT_EXECUTABLE xgettext)
+IF(CMAKE_CROSSCOMPILING OR NOT XGETTEXT_EXECUTABLE)
+        SET(FTE_ENABLE_I18N_TARGET FALSE)
+ENDIF()
+
+IF(FTE_PLATFORM_UWP)
+        ADD_DEFINITIONS(-DWINRT)
+        ADD_DEFINITIONS(-DHAVE_WEBSOCKCL)
+        SET(FTE_DEFINES ${FTE_DEFINES};WINRT)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};WINRT)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};WINRT)
+        SET(FTE_DEFINES ${FTE_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_ENGINE_SERVER_ONLY false CACHE BOOL "Compile fteqw-sv (server only) engine binary." FORCE)
+        SET(FTE_TOOL_IQM false CACHE BOOL "Compile IQM Tool." FORCE)
+        SET(FTE_TOOL_IMAGE false CACHE BOOL "Compile Image Tool." FORCE)
+        SET(FTE_TOOL_MASTER false CACHE BOOL "Compile master server." FORCE)
+        SET(FTE_TOOL_QTV false CACHE BOOL "Compile qtv server." FORCE)
+        SET(FTE_TOOL_HTTPSV false CACHE BOOL "Compile small http server." FORCE)
+        SET(FTE_TOOL_QCVM false CACHE BOOL "Compile standalone qcvm." FORCE)
+        SET(FTE_TOOL_QCC false CACHE BOOL "Compile commandline qc compiler." FORCE)
+        SET(FTE_TOOL_QCCGUI false CACHE BOOL "Compile gui qc compiler." FORCE)
+        SET(FTE_MENU_SYS false CACHE BOOL "Compile System Menu." FORCE)
+        SET(FTE_CSADDON false CACHE BOOL "CS Addon." FORCE)
+ENDIF()
+
+IF(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+        MESSAGE(STATUS "Configuring for Windows Store / UWP toolchain")
+        SET(FTE_PLATFORM_UWP TRUE)
+ENDIF()
+
 IF(FTE_PLATFORM_UWP)
         ADD_DEFINITIONS(-DWINRT)
         ADD_DEFINITIONS(-DHAVE_WEBSOCKCL)
@@ -357,14 +399,16 @@ FUNCTION(EMBED_PLUGIN_META PLUGNAME PLUGTITLE PLUGDESC)
 	SET_TARGET_PROPERTIES(plug_${PLUGNAME} PROPERTIES PREFIX "fteplug_")
 	SET_TARGET_PROPERTIES(plug_${PLUGNAME} PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
 	SET(INSTALLTARGS ${INSTALLTARGS} "plug_${PLUGNAME}" PARENT_SCOPE)
-	#sadly we need to use a temp zip file, because otherwise zip insists on using zip64 extensions which breaks zip -A (as well as any attempts to read any files).
-	ADD_CUSTOM_COMMAND(
+        #sadly we need to use a temp zip file, because otherwise zip insists on using zip64 extensions which breaks zip -A (as well as any attempts to read any files).
+        IF(FTE_ENABLE_ZIP_PACKAGING)
+        ADD_CUSTOM_COMMAND(
 		TARGET plug_${PLUGNAME} POST_BUILD
-		COMMAND /bin/echo -e "{\\n	package fteplug_${PLUGNAME}\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"${PLUGTITLE}\"\\n	gamedir \"\"\\n	desc \"${PLUGDESC}\"\\n}" | zip -q -9 -fz- $<TARGET_FILE:plug_${PLUGNAME}>.zip -
+		COMMAND /bin/echo -e "{\\n	package fteplug_${PLUGNAME}\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"${PLUGTITLE}\"\\n	gamedir \"\"\\n	desc \"${PLUGDESC}\"\\n}" | ${ZIP_EXECUTABLE} -q -9 -fz- $<TARGET_FILE:plug_${PLUGNAME}>.zip -
 		COMMAND cmake -E cat $<TARGET_FILE:plug_${PLUGNAME}>.zip >> "$<TARGET_FILE:plug_${PLUGNAME}>"
-		COMMAND zip -A "$<TARGET_FILE:plug_${PLUGNAME}>"
-		COMMAND cmake -E rm $<TARGET_FILE:plug_${PLUGNAME}>.zip
-		VERBATIM)
+		COMMAND ${ZIP_EXECUTABLE} -A "$<TARGET_FILE:plug_${PLUGNAME}>"
+                COMMAND cmake -E rm $<TARGET_FILE:plug_${PLUGNAME}>.zip
+                VERBATIM)
+        ENDIF()
 ENDFUNCTION()
 
 SET(FTE_DEP_GNUTLS true CACHE BOOL "Link against gnutls")
@@ -450,6 +494,7 @@ IF(SDL3_FOUND)	#SDL3
                         engine/common/net_ssl_gnutls.c
                 )
                 SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+                
 			engine/common/net_ssl_gnutls.c
 			engine/common/sys_linux_threads.c
 			engine/server/sv_sys_unix.c
@@ -548,6 +593,7 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
                         engine/client/winquake.rc
                 )
         ENDIF()
+        
 ELSEIF(UNIX AND NOT FTE_USE_SDL)	#linux(ish)
 				#openbsd will have issues with snd_linux.c
 
@@ -928,6 +974,7 @@ ELSE()
 ENDIF()
 
 SET(FTE_SERVER_FILES
+
 	engine/server/net_preparse.c
 	engine/server/pr_cmds.c
 	engine/server/pr_lua.c
@@ -1895,12 +1942,13 @@ INSTALL(FILES
 
 SET(FTE_MENU_SYS true CACHE BOOL "Compile System Menu.")
 IF(FTE_MENU_SYS)
-	ADD_CUSTOM_TARGET(menusys ALL
+	IF(FTE_ENABLE_ZIP_PACKAGING)
+		ADD_CUSTOM_TARGET(menusys ALL
 		VERBATIM
 		DEPENDS fteqcc
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/quakec/menusys/"
 		COMMAND fteqcc -srcfile "menu.src" -o "${CMAKE_CURRENT_BINARY_DIR}/menu.dat" -DREVISION="${SVNREVISION}" -DDATE="${FTE_DATE}" -DBRANCH="${FTE_BRANCH}"
-		COMMAND /bin/echo -e "{\\n	package fte_menusys\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"Replacement Menus\"\\n	gamedir \"id1\"\\n	desc \"Modern menus to replace the ancient quake ones\"\\n}" | zip -j -q -9 -fz- "${CMAKE_CURRENT_BINARY_DIR}/menusys.pk3" - "${CMAKE_CURRENT_BINARY_DIR}/menu.dat"
+		COMMAND /bin/echo -e "{\\n	package fte_menusys\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"Replacement Menus\"\\n	gamedir \"id1\"\\n	desc \"Modern menus to replace the ancient quake ones\"\\n}" | ${ZIP_EXECUTABLE} -j -q -9 -fz- "${CMAKE_CURRENT_BINARY_DIR}/menusys.pk3" - "${CMAKE_CURRENT_BINARY_DIR}/menu.dat"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/menu.dat" "${CMAKE_CURRENT_BINARY_DIR}/menu.lno" "${CMAKE_CURRENT_BINARY_DIR}/menusys.pk3"
 		SOURCES
 			quakec/menusys/menu.src
@@ -1938,19 +1986,23 @@ IF(FTE_MENU_SYS)
 			quakec/menusys/menu/quit.qc
 	)
 
-	INSTALL(FILES
-		${CMAKE_CURRENT_BINARY_DIR}/menusys.pk3
-		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/games/quake/id1/")
+		INSTALL(FILES
+			${CMAKE_CURRENT_BINARY_DIR}/menusys.pk3
+			DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/games/quake/id1/")
+	ELSE()
+		MESSAGE(STATUS "Skipping menusys target because zip packaging support is disabled.")
+	ENDIF()
 ENDIF()
 
 SET(FTE_CSADDON true CACHE BOOL "CS Addon.")
 IF(FTE_CSADDON)
-	ADD_CUSTOM_TARGET(csaddon ALL
+	IF(FTE_ENABLE_ZIP_PACKAGING)
+		ADD_CUSTOM_TARGET(csaddon ALL
 		VERBATIM
 		DEPENDS fteqcc
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/quakec/csaddon/src/"
 		COMMAND fteqcc -srcfile "csaddon.src" -o "${CMAKE_CURRENT_BINARY_DIR}/csaddon.dat"
-		COMMAND /bin/echo -e "{\\n	package fte_csaddon\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"${PLUGTITLE}\"\\n	gamedir \"id1\"\\n	desc \"${PLUGDESC}\"\\n}" | zip -j -q -9 -fz- "${CMAKE_CURRENT_BINARY_DIR}/csaddon.pk3" - "${CMAKE_CURRENT_BINARY_DIR}/csaddon.dat"
+		COMMAND /bin/echo -e "{\\n	package fte_csaddon\\n	ver \"${SVNREVISION}\"\\n	category Plugins\\n	title \"${PLUGTITLE}\"\\n	gamedir \"id1\"\\n	desc \"${PLUGDESC}\"\\n}" | ${ZIP_EXECUTABLE} -j -q -9 -fz- "${CMAKE_CURRENT_BINARY_DIR}/csaddon.pk3" - "${CMAKE_CURRENT_BINARY_DIR}/csaddon.dat"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/csaddon.dat" "${CMAKE_CURRENT_BINARY_DIR}/csaddon.lno" "${CMAKE_CURRENT_BINARY_DIR}/csaddon.pk3"
 		SOURCES
 			quakec/csaddon/src/csaddon.src
@@ -1974,7 +2026,10 @@ IF(FTE_CSADDON)
 			quakec/csaddon/src/csaddon.qc
 	)
 
-	INSTALL(FILES
-		${CMAKE_CURRENT_BINARY_DIR}/csaddon.pk3
-		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/games/quake/id1/")
+		INSTALL(FILES
+			${CMAKE_CURRENT_BINARY_DIR}/csaddon.pk3
+			DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/games/quake/id1/")
+	ELSE()
+		MESSAGE(STATUS "Skipping csaddon target because zip packaging support is disabled.")
+	ENDIF()
 ENDIF()
