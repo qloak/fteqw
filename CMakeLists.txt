@@ -8,6 +8,26 @@ cmake_policy(SET CMP0063 NEW)
 
 PROJECT(FTEQuake)
 
+IF(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+        MESSAGE(STATUS "Configuring for Windows Store / UWP toolchain")
+        SET(FTE_PLATFORM_UWP TRUE)
+ENDIF()
+
+IF(FTE_PLATFORM_UWP)
+        ADD_DEFINITIONS(-DWINRT)
+        ADD_DEFINITIONS(-DHAVE_WEBSOCKCL)
+        SET(FTE_DEFINES ${FTE_DEFINES};WINRT)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};WINRT)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};WINRT)
+        SET(FTE_DEFINES ${FTE_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTESV_DEFINES ${FTESV_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};HAVE_WEBSOCKCL)
+        SET(FTE_ENGINE_SERVER_ONLY false CACHE BOOL "Compile fteqw-sv (server only) engine binary." FORCE)
+        SET(FTE_TOOL_MASTER false CACHE BOOL "Compile master server." FORCE)
+        SET(FTE_TOOL_QTV false CACHE BOOL "Compile qtv server." FORCE)
+        SET(FTE_TOOL_HTTPSV false CACHE BOOL "Compile small http server." FORCE)
+ENDIF()
+
 INCLUDE_DIRECTORIES(
 	engine/common
 	engine/client
@@ -147,9 +167,13 @@ SET(FTE_INSTALL_BINDIR games CACHE STRING "Binary dir to install to.")
 SET(FTE_INSTALL_LIBDIR fteqw CACHE STRING "Binary dir to install to.")
 
 IF(NOT WIN32)
-	SET(SYS_LIBS ${SYS_LIBS} m)
+        SET(SYS_LIBS ${SYS_LIBS} m)
 ELSE()
-	SET(SYS_LIBS ${SYS_LIBS})
+        IF(FTE_PLATFORM_UWP)
+                SET(SYS_LIBS ${SYS_LIBS} windowsapp bcrypt)
+        ELSE()
+                SET(SYS_LIBS ${SYS_LIBS})
+        ENDIF()
 ENDIF()
 
 SET(FTE_DEP_ZLIB true CACHE BOOL "Link against zlib.")
@@ -397,25 +421,35 @@ IF(SDL3_FOUND)	#SDL3
 	SET(FTESV_DEFINES ${FTESV_DEFINES};MULTITHREAD)
 	SET(FTESV_LIBS ${FTESV_LIBS} ${SYS_LIBS} ${CMAKE_DL_LIBS} ${SDL3_LIBRARIES})
 
-	IF(WIN32)
-		SET(FTE_LIBS ${FTE_LIBS} wsock32 gdi32 ole32)
-		SET(FTE_DEFINES ${FTE_DEFINES})
-		SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
-			engine/client/winquake.rc
-			engine/common/net_ssl_winsspi.c
-			engine/common/fs_win32.c
-		)
-		SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
-			engine/client/winquake.rc
-			engine/common/net_ssl_winsspi.c
-			engine/common/fs_win32.c
-			engine/server/sv_sys_win.c
-		)
-	ELSE()
-		SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
-			engine/common/net_ssl_gnutls.c
-		)
-		SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+        IF(WIN32)
+                IF(FTE_PLATFORM_UWP)
+                        SET(FTE_LIBS ${FTE_LIBS} ${SYS_LIBS})
+                ELSE()
+                        SET(FTE_LIBS ${FTE_LIBS} wsock32 gdi32 ole32)
+                ENDIF()
+                SET(FTE_DEFINES ${FTE_DEFINES})
+                SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/fs_win32.c
+                )
+                SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/fs_win32.c
+                        engine/server/sv_sys_win.c
+                )
+                IF(NOT FTE_PLATFORM_UWP)
+                        SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
+                                engine/client/winquake.rc
+                        )
+                        SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+                                engine/client/winquake.rc
+                        )
+                ENDIF()
+        ELSE()
+                SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
+                        engine/common/net_ssl_gnutls.c
+                )
+                SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
 			engine/common/net_ssl_gnutls.c
 			engine/common/sys_linux_threads.c
 			engine/server/sv_sys_unix.c
@@ -442,47 +476,78 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
 	
 	#	engine/server/sv_sys_win.c
 	
-	SET(FTE_LIBS ${FTE_LIBS} ole32 gdi32 wsock32 winmm dxguid)
-	SET(FTE_DEFINES ${FTE_DEFINES};D3D9QUAKE;D3D11QUAKE)
-	SET(FTE_ARCH_FILES 
-		engine/client/winquake.rc
-		engine/common/sys_win_threads.c
-		engine/common/net_ssl_winsspi.c
-		engine/common/net_ssl_gnutls.c
-		engine/common/fs_win32.c
-		engine/client/cd_win.c
-		engine/client/in_win.c
-		engine/client/snd_al.c
-		engine/client/snd_directx.c
-		engine/client/snd_wasapi.c
-		engine/client/snd_win.c
-		engine/client/snd_xaudio.c
-		engine/client/sys_win.c
-		
-		engine/gl/gl_vidnt.c
+        SET(FTE_DEFINES ${FTE_DEFINES};D3D9QUAKE;D3D11QUAKE)
+        IF(FTE_PLATFORM_UWP)
+                SET(FTE_LIBS ${FTE_LIBS} ${SYS_LIBS} d3d11 dxgi)
+                SET(FTE_ARCH_FILES
+                        engine/common/sys_winrt_threads.cpp
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/net_ssl_gnutls.c
+                        engine/common/fs_win32.c
+                )
+                LIST(APPEND FTE_ARCH_FILES
+                        engine/client/cd_win.c
+                        engine/client/snd_xaudio.c
+                        engine/client/sys_winrt.cpp
+                )
+        ELSE()
+                SET(FTE_LIBS ${FTE_LIBS} ole32 gdi32 wsock32 winmm dxguid)
+                SET(FTE_ARCH_FILES
+                        engine/common/sys_win_threads.c
+                        engine/common/net_ssl_winsspi.c
+                        engine/common/net_ssl_gnutls.c
+                        engine/common/fs_win32.c
+                )
+                LIST(APPEND FTE_ARCH_FILES
+                        engine/client/cd_win.c
+                        engine/client/in_win.c
+                        engine/client/snd_al.c
+                        engine/client/snd_directx.c
+                        engine/client/snd_wasapi.c
+                        engine/client/snd_win.c
+                        engine/client/snd_xaudio.c
+                        engine/client/sys_win.c
+                )
+        ENDIF()
+        SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
+                engine/gl/gl_vidnt.c
 
-		engine/d3d/d3d_backend.c
-		engine/d3d/d3d_image.c
-		engine/d3d/d3d_shader.c
-		engine/d3d/d3d11_backend.c
-		engine/d3d/d3d11_image.c
-		engine/d3d/d3d11_shader.c
-		engine/d3d/d3d8_backend.c
-		engine/d3d/d3d8_image.c
-		engine/d3d/vid_d3d.c
-		engine/d3d/vid_d3d11.c
-		engine/d3d/vid_d3d8.c
-	)
-	
-	SET(FTESV_LIBS ${FTESV_LIBS} wsock32 winmm)
-	SET(FTESV_ARCH_FILES 
-		engine/client/winquake.rc
-		engine/common/sys_win_threads.c
-		engine/common/net_ssl_winsspi.c
-		engine/common/net_ssl_gnutls.c
-		engine/common/fs_win32.c
-		engine/server/sv_sys_win.c
-	)
+                engine/d3d/d3d_backend.c
+                engine/d3d/d3d_image.c
+                engine/d3d/d3d_shader.c
+                engine/d3d/d3d11_backend.c
+                engine/d3d/d3d11_image.c
+                engine/d3d/d3d11_shader.c
+                engine/d3d/d3d8_backend.c
+                engine/d3d/d3d8_image.c
+                engine/d3d/vid_d3d.c
+                engine/d3d/vid_d3d11.c
+                engine/d3d/vid_d3d8.c
+        )
+
+        IF(NOT FTE_PLATFORM_UWP)
+                SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}
+                        engine/client/winquake.rc
+                )
+        ENDIF()
+
+        IF(FTE_PLATFORM_UWP)
+                SET(FTESV_LIBS ${FTESV_LIBS} ${SYS_LIBS})
+        ELSE()
+                SET(FTESV_LIBS ${FTESV_LIBS} wsock32 winmm)
+        ENDIF()
+        SET(FTESV_ARCH_FILES
+                engine/common/sys_win_threads.c
+                engine/common/net_ssl_winsspi.c
+                engine/common/net_ssl_gnutls.c
+                engine/common/fs_win32.c
+                engine/server/sv_sys_win.c
+        )
+        IF(NOT FTE_PLATFORM_UWP)
+                SET(FTESV_ARCH_FILES ${FTESV_ARCH_FILES}
+                        engine/client/winquake.rc
+                )
+        ENDIF()
 ELSEIF(UNIX AND NOT FTE_USE_SDL)	#linux(ish)
 				#openbsd will have issues with snd_linux.c
 
@@ -738,9 +803,8 @@ SET(FTE_COMMON_FILES
 	engine/common/mathlib.c
 	engine/common/md4.c
 	engine/common/md5.c
-	engine/common/net_chan.c
-	engine/common/net_ice.c
-	engine/common/net_wins.c
+        engine/common/net_chan.c
+        engine/common/net_ice.c
 	engine/common/plugin.c
 	engine/common/pmove.c
 	engine/common/pmovetst.c
@@ -854,8 +918,14 @@ SET(FTE_COMMON_FILES
 	${FTE_QCVM_FILES}
 	engine/qclib/hash.c
 	
-	engine/http/httpclient.c
+        engine/http/httpclient.c
 )
+
+IF(FTE_PLATFORM_UWP)
+        LIST(APPEND FTE_COMMON_FILES engine/common/net_winrt.cpp)
+ELSE()
+        LIST(APPEND FTE_COMMON_FILES engine/common/net_wins.c)
+ENDIF()
 
 SET(FTE_SERVER_FILES
 	engine/server/net_preparse.c

@@ -68,6 +68,7 @@ echo "cd $SVNROOT/engine && make gl-rel"
 echo "(if you're in cygwin, add FTE_TARGET=win32 to compile for native windows)"
 echo "(add plugins-rel qcc-rel qccgui-rel sv-rel vk-rel etc for additional targets)"
 echo "(or use -dbg if you want debug builds for whatever reason)"
+echo "(set FTE_TARGET=uwp to drive the Visual Studio UWP presets once the UWP workload is installed)"
 echo
 
 #always execute it if it exists, so that we preserve custom paths etc that are not prompted for here
