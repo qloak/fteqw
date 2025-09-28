@@ -1,0 +1,54 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "uwp-x64",
+      "displayName": "UWP (Windows Store) x64",
+      "description": "Configure FTEQW for the Windows Store toolchain targeting x64.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolchainFile": "cmake/toolchains/uwp.cmake",
+      "binaryDir": "${sourceDir}/build/uwp/x64"
+    },
+    {
+      "name": "uwp-arm64",
+      "displayName": "UWP (Windows Store) ARM64",
+      "description": "Configure FTEQW for the Windows Store toolchain targeting ARM64.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "ARM64",
+      "toolchainFile": "cmake/toolchains/uwp.cmake",
+      "binaryDir": "${sourceDir}/build/uwp/arm64"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "uwp-x64-debug",
+      "displayName": "Build UWP x64 (Debug)",
+      "configurePreset": "uwp-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "uwp-x64-release",
+      "displayName": "Build UWP x64 (Release)",
+      "configurePreset": "uwp-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "uwp-arm64-debug",
+      "displayName": "Build UWP ARM64 (Debug)",
+      "configurePreset": "uwp-arm64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "uwp-arm64-release",
+      "displayName": "Build UWP ARM64 (Release)",
+      "configurePreset": "uwp-arm64",
+      "configuration": "Release"
+    }
+  ]
+}

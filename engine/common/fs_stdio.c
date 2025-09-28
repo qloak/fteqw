@@ -242,15 +242,21 @@ vfsfile_t *VFSSTDIO_Open(const char *osname, const char *mode, qboolean *needsfl
 	return (vfsfile_t*)file;
 }
 
-#if !defined(_WIN32) || defined(WINRT) || defined(_XBOX)
+#if defined(WINRT)
+extern vfsfile_t *VFSWinRT_Open(const char *osname, const char *mode);
 vfsfile_t *VFSOS_Open(const char *osname, const char *mode)
 {
-	vfsfile_t *f;
-	qboolean needsflush;
-	f = VFSSTDIO_Open(osname, mode, &needsflush);
-	if (needsflush)
-		FS_FlushFSHashFull();
-	return f;
+        return VFSWinRT_Open(osname, mode);
+}
+#elif !defined(_WIN32) || defined(_XBOX)
+vfsfile_t *VFSOS_Open(const char *osname, const char *mode)
+{
+        vfsfile_t *f;
+        qboolean needsflush;
+        f = VFSSTDIO_Open(osname, mode, &needsflush);
+        if (needsflush)
+                FS_FlushFSHashFull();
+        return f;
 }
 #endif
 

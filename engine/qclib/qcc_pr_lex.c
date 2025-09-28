@@ -3344,7 +3344,7 @@ static const struct tm *QCC_CurrentTime(void)
 	return localtime(&t);
 }
 
-#if _POSIX_C_SOURCE >= 2 || defined(_WIN32)
+#if _POSIX_C_SOURCE >= 2 || (defined(_WIN32) && !defined(WINRT))
 #define HAVE_POPEN
 #endif
 #ifdef HAVE_POPEN
@@ -3352,8 +3352,10 @@ static char *QCC_PR_PopenMacro(const char *macroname, const char *cmd, char *ret
 {
 	char *ret = retbuf;
 	char temp[65536], *t = temp;
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(WINRT)
 	FILE *f = _popen(cmd, "rt");
+#elif defined(WINRT)
+	FILE *f = NULL;
 #else
 	FILE *f = popen(cmd, "r");
 #endif
