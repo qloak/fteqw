@@ -17,6 +17,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
+// UWP doesn’t support _alloca properly, so just disable or replace
+#   define alloca _malloca
+#   include <malloc.h>
+#else
+#   include <malloc.h>
+#   define alloca _alloca
+#endif
 
 #include "qtv.h"
 #include <string.h>

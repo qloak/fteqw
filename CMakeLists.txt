@@ -8,6 +8,8 @@ cmake_policy(SET CMP0063 NEW)
 
 PROJECT(FTEQuake)
 
+include_directories("C:/vcpkg/installed/x64-uwp/include")
+
 IF(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
         MESSAGE(STATUS "Configuring for Windows Store / UWP toolchain")
         SET(FTE_PLATFORM_UWP TRUE)
@@ -205,6 +207,11 @@ SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};CONFIG_FILE_NAME=${FTE_BUILD_CONFIG})
 SET(FTE_USE_SDL false CACHE BOOL "Force the use of SDL2 instead of using native builds.")
 
 INCLUDE(GNUInstallDirs)
+if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "Install path" FORCE)
+    set(CMAKE_INSTALL_LIBDIR "lib" CACHE PATH "Library dir" FORCE)
+    set(CMAKE_INSTALL_DATAROOTDIR "share" CACHE PATH "Data dir" FORCE)
+endif()
 SET(FTE_INSTALL_BINDIR games CACHE STRING "Binary dir to install to.")
 SET(FTE_INSTALL_LIBDIR fteqw CACHE STRING "Binary dir to install to.")
 
@@ -235,15 +242,14 @@ ENDIF()
 
 SET(FTE_DEP_BZIP2 true CACHE BOOL "Link against libbzip2.")
 IF(FTE_DEP_BZIP2)
-	FIND_PACKAGE(BZip2)
+    FIND_PACKAGE(BZip2 REQUIRED)
 ENDIF()
 IF(BZIP2_FOUND)
-	SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};AVAIL_BZLIB;BZLIB_STATIC)
-	SET(FTE_LIBS ${FTE_LIBS} bz2)
-	SET(FTESV_LIBS ${FTESV_LIBS} bz2)
-#	MESSAGE(STATUS "bzip2 library found. bz2-compressed pk3s will work for the price of extra bloat! yay!")
+    SET(FTE_LIB_DEFINES ${FTE_LIB_DEFINES};AVAIL_BZLIB;BZLIB_STATIC)
+    SET(FTE_LIBS ${FTE_LIBS} BZip2::BZip2)
+    SET(FTESV_LIBS ${FTESV_LIBS} BZip2::BZip2)
 ELSE()
-	MESSAGE(WARNING "bzip2 library NOT available. bz2-compressed pk3s will not be available, as if anyone cares.")
+    MESSAGE(WARNING "bzip2 library NOT available. bz2-compressed pk3s will not be available.")
 ENDIF()
 
 SET(OpenGL_GL_PREFERENCE LEGACY)
@@ -461,6 +467,20 @@ IF(SDL3_FOUND)	#SDL3
 		engine/client/cd_sdl.c
 		engine/gl/gl_vidsdl.c
 	)
+
+	if(FTE_PLATFORM_UWP)
+    # Make sure the WinRT sys layer is used and the classic Win32 one is not.
+    list(REMOVE_ITEM FTE_ARCH_FILES engine/client/sys_win.c)
+    list(APPEND     FTE_ARCH_FILES engine/client/sys_winrt.cpp)
+
+    # Compile-time guards (some trees expect WINRT defined)
+    add_definitions(-DWINRT)
+    set(FTE_DEFINES       ${FTE_DEFINES};WINRT)
+    set(FTESV_DEFINES     ${FTESV_DEFINES};WINRT)
+    set(FTE_LIB_DEFINES   ${FTE_LIB_DEFINES};WINRT)
+
+    message(STATUS "UWP: forcing sys_winrt.cpp and excluding sys_win.c")
+endif()
 
 	SET(FTESV_DEFINES ${FTESV_DEFINES};MULTITHREAD)
 	SET(FTESV_LIBS ${FTESV_LIBS} ${SYS_LIBS} ${CMAKE_DL_LIBS} ${SDL3_LIBRARIES})
@@ -967,6 +987,18 @@ SET(FTE_COMMON_FILES
         engine/http/httpclient.c
 )
 
+# Add this somewhere after FTE_COMMON_FILES definition
+if(FTE_PLATFORM_UWP)
+    list(APPEND FTE_COMMON_FILES
+        engine/common/fs.c
+        engine/common/fs_stdio.c
+        engine/common/fs_pak.c
+        engine/common/fs_zip.c
+        engine/common/fs_xz.c
+        engine/common/fs_dzip.c
+    )
+endif()
+
 IF(FTE_PLATFORM_UWP)
         LIST(APPEND FTE_COMMON_FILES engine/common/net_winrt.cpp)
 ELSE()
@@ -1137,7 +1169,7 @@ IF(FTE_DEP_DRACO)
 ENDIF()
 
 
-SET(FTE_PLUG_QUAKE3 true CACHE BOOL "Compile Quake3 plugin.")
+SET(FTE_PLUG_QUAKE3 false CACHE BOOL "Compile Quake3 plugin.")
 IF(FTE_PLUG_QUAKE3)
 	IF (0)
 		SET(FTE_DEFINES ${FTE_DEFINES};${Q3_DEFINES})
@@ -1413,7 +1445,7 @@ ELSE()
 		SET(INSTALLTARGS ${INSTALLTARGS} ftemaster)
 	ENDIF()
 
-	SET(FTE_TOOL_HTTPSV true CACHE BOOL "Compile small http server.")
+	SET(FTE_TOOL_HTTPSV false CACHE BOOL "Compile small http server.")
 	IF(FTE_TOOL_HTTPSV)
 		ADD_EXECUTABLE(httpserver
 			engine/common/fs_stdio.c

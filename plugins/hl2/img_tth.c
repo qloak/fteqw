@@ -1,6 +1,12 @@
 #include <zlib.h>
 #include "../plugin.h"
 
+#ifdef _WIN32
+#include "C:/vcpkg/installed/x64-uwp/include/zlib.h"
+#else
+#include <zlib.h>
+#endif
+
 static plugimagefuncs_t *imagefuncs = NULL;
 static plugfsfuncs_t *filefuncs = NULL;
 
@@ -13,24 +19,24 @@ qboolean COM_RequireExtension(char *path, const char *extension, int maxlen)
 	int plen = strlen(path);
 	int elen = strlen(extension);
 
-	//check if its aready suffixed
+	// check if its aready suffixed
 	if (plen >= elen)
 	{
-		if (!Q_strcasecmp(path+plen-elen, extension))
+		if (!Q_strcasecmp(path + plen - elen, extension))
 			return okay;
 	}
 
-	//truncate if required
-	if (plen+1+elen > maxlen)
+	// truncate if required
+	if (plen + 1 + elen > maxlen)
 	{
-		if (elen+1 > maxlen)
+		if (elen + 1 > maxlen)
 			Sys_Errorf("extension longer than path buffer");
 		okay = false;
-		plen = maxlen - 1+elen;
+		plen = maxlen - 1 + elen;
 	}
 
-	//do the copy
-	while(*extension)
+	// do the copy
+	while (*extension)
 		path[plen++] = *extension++;
 	path[plen] = 0;
 	return okay;
@@ -39,10 +45,10 @@ qboolean COM_RequireExtension(char *path, const char *extension, int maxlen)
 
 static struct pendingtextureinfo *Image_ReadTTHFile(unsigned int flags, const char *fname, qbyte *filedata, size_t filesize)
 {
-	uint8_t num_mipmaps; // number of mipmaps in this texture
+	uint8_t num_mipmaps;	// number of mipmaps in this texture
 	uint32_t len_vtf_chunk; // size of uncompressed vtf chunk in header
-	uint32_t len_vtf_file; // total size of uncompressed vtf file
-	uint32_t len_ttz_tail; // compressed size of accompanying ttz file
+	uint32_t len_vtf_file;	// total size of uncompressed vtf file
+	uint32_t len_ttz_tail;	// compressed size of accompanying ttz file
 	qbyte *vtf;
 	qbyte *tail = NULL;
 	size_t tailsize = 0;
@@ -124,11 +130,11 @@ static struct pendingtextureinfo *Image_ReadTTHFile(unsigned int flags, const ch
 }
 
 static plugimageloaderfuncs_t tthfuncs =
-{
-	"Troika Texture File",
-	sizeof(struct pendingtextureinfo),
-	true,
-	Image_ReadTTHFile,
+	{
+		"Troika Texture File",
+		sizeof(struct pendingtextureinfo),
+		true,
+		Image_ReadTTHFile,
 };
 
 qboolean TTH_Init(void)

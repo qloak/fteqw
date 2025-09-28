@@ -60,10 +60,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <winrt/Windows.UI.Input.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 
-extern "C" {
-void D3D11_DoResize(int newwidth, int newheight);
-void D3D11_BeginSuspend(void);
-void D3D11_EndSuspend(void);
+#include <windows.storage.h>
+using namespace Windows::Storage;
+
+void Sys_SetGameDirToLocalState(void)
+{
+        auto localFolder = ApplicationData::Current->LocalFolder;
+        Platform::String ^ path = localFolder->Path;
+        wcstombs(com_gamedir, path->Data(), sizeof(com_gamedir));
+}
+
+extern "C"
+{
+        void D3D11_DoResize(int newwidth, int newheight);
+        void D3D11_BeginSuspend(void);
+        void D3D11_EndSuspend(void);
 }
 
 using namespace winrt;
@@ -125,6 +136,7 @@ static winrt::event_revoker<Gamepad> g_gamepadAddedRevoker;
 static winrt::event_revoker<Gamepad> g_gamepadRemovedRevoker;
 
 static std::wstring g_localStatePath;
+static std::string g_localStatePathUtf8;
 static std::mutex g_externalMapMutex;
 static bool g_externalMapLoaded = false;
 static std::unordered_map<std::wstring, std::wstring> g_externalFileMap;
@@ -177,63 +189,63 @@ static std::mutex g_gamepadMutex;
 static std::vector<WinRTGamepadState> g_gamepads;
 
 static unsigned short scantokey[] =
-{
-//      0                       1                       2                       3                       4                       5                       6                       7
-//      8                       9                       A                       B                       C                       D                       E                       F
-        0,                      27,                     '1',            '2',            '3',            '4',            '5',            '6',            // 0
-        '7',            '8',            '9',            '0',            '-',            '=',            K_BACKSPACE,    9,              // 0
-        'q',            'w',            'e',            'r',            't',            'y',            'u',            'i',            // 1
-        'o',            'p',            '[',            ']',            K_ENTER,        K_LCTRL,        'a',            's',            // 1
-        'd',            'f',            'g',            'h',            'j',            'k',            'l',            ';',            // 2
-        '\'',           '`',            K_LSHIFT,       '\\',           'z',            'x',            'c',            'v',            // 2
-        'b',            'n',            'm',            ',',            '.',            '/',            K_RSHIFT,       K_KP_STAR,      // 3
-        K_LALT,         ' ',            K_CAPSLOCK,     K_F1,           K_F2,           K_F3,           K_F4,           K_F5,           // 3
-        K_F6,           K_F7,           K_F8,           K_F9,           K_F10,          K_PAUSE,        K_SCRLCK,       K_KP_HOME,      // 4
-        K_KP_UPARROW,   K_KP_PGUP,      K_KP_MINUS,     K_KP_LEFTARROW, K_KP_5,        K_KP_RIGHTARROW,K_KP_PLUS,      K_KP_END,       // 4
-        K_KP_DOWNARROW, K_KP_PGDN,      K_KP_INS,       K_KP_DEL,       0,              0,              0,              K_F11,          // 5
-        K_F12,          0,              0,              0,              0,              0,              0,              0,              // 5
-        0,              0,              0,              0,              0,              '\\',          0,              0,              // 6
-        0,              0,              0,              0,              0,              0,              0,              0,              // 6
-        0,              0,              0,              0,              0,              0,              0,              0,              // 7
-        0,              0,              0,              0,              0,              0,              0,              0,              // 7
-//      0                       1                       2                       3                       4                       5                       6                       7
-//      8                       9                       A                       B                       C                       D                       E                       F
-        0,              0,              0,              0,              0,              0,              0,              0,              // 8
-        0,              0,              0,              0,              0,              0,              0,              0,              // 8
-        0,              0,              0,              0,              0,              0,              0,              0,              // 9
-        0,              0,              0,              0,              0,              0,              0,              0,              // 9
-        0,              0,              0,              0,              0,              0,              0,              0,              // a
-        0,              0,              0,              0,              0,              0,              0,              0,              // a
-        0,              0,              0,              0,              0,              0,              0,              0,              // b
-        0,              0,              0,              0,              0,              0,              0,              0,              // b
-        0,              0,              0,              0,              0,              0,              0,              0,              // c
-        0,              0,              0,              0,              0,              0,              0,              0,              // c
-        0,              0,              0,              0,              0,              0,              0,              0,              // d
-        0,              0,              0,              0,              0,              0,              0,              0,              // d
-        0,              0,              0,              0,              0,              0,              0,              0,              // e
-        0,              0,              0,              0,              0,              0,              0,              0,              // e
-        0,              0,              0,              0,              0,              0,              0,              0,              // f
-        0,              0,              0,              0,              0,              0,              0,              0,              // f
-//      0                       1                       2                       3                       4                       5                       6                       7
-//      8                       9                       A                       B                       C                       D                       E                       F
-        0,                      27,                     '1',            '2',            '3',            '4',            '5',            '6',            // 0
-        '7',            '8',            '9',            '0',            '-',            '=',            K_BACKSPACE,    9,              // 0
-        'q',            'w',            'e',            'r',            't',            'y',            'u',            'i',            // 1
-        'o',            'p',            '[',            ']',            K_KP_ENTER,     K_RCTRL,        'a',            's',            // 1
-        'd',            'f',            'g',            'h',            'j',            'k',            'l',            ';',            // 2
-        '\'',           '`',            K_SHIFT,        '\\',           'z',            'x',            'c',            'v',            // 2
-        'b',            'n',            'm',            ',',            '.',            K_KP_SLASH,     K_SHIFT,        K_PRINTSCREEN,// 3
-        K_RALT,         ' ',            K_CAPSLOCK,     K_F1,           K_F2,           K_F3,           K_F4,           K_F5,           // 3
-        K_F6,           K_F7,           K_F8,           K_F9,           K_F10,          K_KP_NUMLOCK,   K_SCRLCK,       K_HOME,         // 4
-        K_UPARROW,      K_PGUP,         '-',            K_LEFTARROW,    0,              K_RIGHTARROW,   '+',            K_END,          // 4
-        K_DOWNARROW,    K_PGDN,         K_INS,          K_DEL,          0,              0,              0,              K_F11,          // 5
-        K_F12,          0,              0,              0,              0,              0,              0,              0,              // 5
-        0,              0,              0,              0,              0,              '\\',          0,              0,              // 6
-        0,              0,              0,              0,              0,              0,              0,              0,              // 6
-        0,              0,              0,              0,              0,              0,              0,              0,              // 7
-        0,              0,              0,              0,              0,              0,              0,              0               // 7
-//      0                       1                       2                       3                       4                       5                       6                       7
-//      8                       9                       A                       B                       C                       D                       E                       F
+    {
+        //      0                       1                       2                       3                       4                       5                       6                       7
+        //      8                       9                       A                       B                       C                       D                       E                       F
+        0, 27, '1', '2', '3', '4', '5', '6',                                                               // 0
+        '7', '8', '9', '0', '-', '=', K_BACKSPACE, 9,                                                      // 0
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',                                                            // 1
+        'o', 'p', '[', ']', K_ENTER, K_LCTRL, 'a', 's',                                                    // 1
+        'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',                                                            // 2
+        '\'', '`', K_LSHIFT, '\\', 'z', 'x', 'c', 'v',                                                     // 2
+        'b', 'n', 'm', ',', '.', '/', K_RSHIFT, K_KP_STAR,                                                 // 3
+        K_LALT, ' ', K_CAPSLOCK, K_F1, K_F2, K_F3, K_F4, K_F5,                                             // 3
+        K_F6, K_F7, K_F8, K_F9, K_F10, K_PAUSE, K_SCRLCK, K_KP_HOME,                                       // 4
+        K_KP_UPARROW, K_KP_PGUP, K_KP_MINUS, K_KP_LEFTARROW, K_KP_5, K_KP_RIGHTARROW, K_KP_PLUS, K_KP_END, // 4
+        K_KP_DOWNARROW, K_KP_PGDN, K_KP_INS, K_KP_DEL, 0, 0, 0, K_F11,                                     // 5
+        K_F12, 0, 0, 0, 0, 0, 0, 0,                                                                        // 5
+        0, 0, 0, 0, 0, '\\', 0, 0,                                                                         // 6
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 6
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 7
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 7
+                                                                                                           //      0                       1                       2                       3                       4                       5                       6                       7
+                                                                                                           //      8                       9                       A                       B                       C                       D                       E                       F
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 8
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 8
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 9
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 9
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // a
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // a
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // b
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // b
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // c
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // c
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // d
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // d
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // e
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // e
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // f
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // f
+                                                                                                           //      0                       1                       2                       3                       4                       5                       6                       7
+                                                                                                           //      8                       9                       A                       B                       C                       D                       E                       F
+        0, 27, '1', '2', '3', '4', '5', '6',                                                               // 0
+        '7', '8', '9', '0', '-', '=', K_BACKSPACE, 9,                                                      // 0
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',                                                            // 1
+        'o', 'p', '[', ']', K_KP_ENTER, K_RCTRL, 'a', 's',                                                 // 1
+        'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',                                                            // 2
+        '\'', '`', K_SHIFT, '\\', 'z', 'x', 'c', 'v',                                                      // 2
+        'b', 'n', 'm', ',', '.', K_KP_SLASH, K_SHIFT, K_PRINTSCREEN,                                       // 3
+        K_RALT, ' ', K_CAPSLOCK, K_F1, K_F2, K_F3, K_F4, K_F5,                                             // 3
+        K_F6, K_F7, K_F8, K_F9, K_F10, K_KP_NUMLOCK, K_SCRLCK, K_HOME,                                     // 4
+        K_UPARROW, K_PGUP, '-', K_LEFTARROW, 0, K_RIGHTARROW, '+', K_END,                                  // 4
+        K_DOWNARROW, K_PGDN, K_INS, K_DEL, 0, 0, 0, K_F11,                                                 // 5
+        K_F12, 0, 0, 0, 0, 0, 0, 0,                                                                        // 5
+        0, 0, 0, 0, 0, '\\', 0, 0,                                                                         // 6
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 6
+        0, 0, 0, 0, 0, 0, 0, 0,                                                                            // 7
+        0, 0, 0, 0, 0, 0, 0, 0                                                                             // 7
+                                                                                                           //      0                       1                       2                       3                       4                       5                       6                       7
+                                                                                                           //      8                       9                       A                       B                       C                       D                       E                       F
 };
 
 static int SysWinRT_MapScanCode(uint32_t scancode)
@@ -245,22 +257,38 @@ static int SysWinRT_MapScanCode(uint32_t scancode)
         {
                 switch (key)
                 {
-                case K_KP_HOME:         return '7';
-                case K_KP_UPARROW:      return '8';
-                case K_KP_PGUP:         return '9';
-                case K_KP_LEFTARROW:    return '4';
-                case K_KP_5:            return '5';
-                case K_KP_RIGHTARROW:   return '6';
-                case K_KP_END:          return '1';
-                case K_KP_DOWNARROW:    return '2';
-                case K_KP_PGDN:         return '3';
-                case K_KP_ENTER:        return K_ENTER;
-                case K_KP_INS:          return '0';
-                case K_KP_DEL:          return '.';
-                case K_KP_SLASH:        return '/';
-                case K_KP_MINUS:        return '-';
-                case K_KP_PLUS:         return '+';
-                case K_KP_STAR:         return '*';
+                case K_KP_HOME:
+                        return '7';
+                case K_KP_UPARROW:
+                        return '8';
+                case K_KP_PGUP:
+                        return '9';
+                case K_KP_LEFTARROW:
+                        return '4';
+                case K_KP_5:
+                        return '5';
+                case K_KP_RIGHTARROW:
+                        return '6';
+                case K_KP_END:
+                        return '1';
+                case K_KP_DOWNARROW:
+                        return '2';
+                case K_KP_PGDN:
+                        return '3';
+                case K_KP_ENTER:
+                        return K_ENTER;
+                case K_KP_INS:
+                        return '0';
+                case K_KP_DEL:
+                        return '.';
+                case K_KP_SLASH:
+                        return '/';
+                case K_KP_MINUS:
+                        return '-';
+                case K_KP_PLUS:
+                        return '+';
+                case K_KP_STAR:
+                        return '*';
                 }
         }
         if (!key)
@@ -337,10 +365,11 @@ static void SysWinRT_RemoveGamepad(Gamepad const &pad)
         if (!pad)
                 return;
         g_gamepads.erase(std::remove_if(g_gamepads.begin(), g_gamepads.end(),
-                [&](const WinRTGamepadState &state)
-                {
-                        return state.device == pad;
-                }), g_gamepads.end());
+                                        [&](const WinRTGamepadState &state)
+                                        {
+                                                return state.device == pad;
+                                        }),
+                         g_gamepads.end());
 }
 
 static void SysWinRT_ProcessGamepads(void)
@@ -348,67 +377,67 @@ static void SysWinRT_ProcessGamepads(void)
         std::lock_guard<std::mutex> guard(g_gamepadMutex);
         for (auto &state : g_gamepads)
         {
-                        if (!state.device)
-                                continue;
-                        auto reading = state.device.GetCurrentReading();
-                        GamepadButtons buttons = reading.Buttons;
-                        GamepadButtons changed = buttons ^ state.lastButtons;
-                        unsigned int devid = state.qdevid;
-                        if (devid == DEVID_UNSET)
-                        {
-                                state.lastButtons = buttons;
-                                state.lastReading = reading;
-                                state.leftTriggerPressed = reading.LeftTrigger >= kTriggerButtonThreshold;
-                                state.rightTriggerPressed = reading.RightTrigger >= kTriggerButtonThreshold;
-                                continue;
-                        }
-
-                        auto sendButton = [&](GamepadButtons flag, int key)
-                        {
-                                if (static_cast<bool>(changed & flag))
-                                        IN_KeyEvent(devid, static_cast<bool>(buttons & flag), key, 0);
-                        };
-
-                        sendButton(GamepadButtons::A, K_GP_DIAMOND_DOWN);
-                        sendButton(GamepadButtons::B, K_GP_DIAMOND_RIGHT);
-                        sendButton(GamepadButtons::X, K_GP_DIAMOND_LEFT);
-                        sendButton(GamepadButtons::Y, K_GP_DIAMOND_UP);
-                        sendButton(GamepadButtons::View, K_GP_VIEW);
-                        sendButton(GamepadButtons::Menu, K_GP_MENU);
-                        sendButton(GamepadButtons::LeftShoulder, K_GP_LEFT_SHOULDER);
-                        sendButton(GamepadButtons::RightShoulder, K_GP_RIGHT_SHOULDER);
-                        sendButton(GamepadButtons::LeftThumbstick, K_GP_LEFT_STICK);
-                        sendButton(GamepadButtons::RightThumbstick, K_GP_RIGHT_STICK);
-                        sendButton(GamepadButtons::DPadUp, K_GP_DPAD_UP);
-                        sendButton(GamepadButtons::DPadDown, K_GP_DPAD_DOWN);
-                        sendButton(GamepadButtons::DPadLeft, K_GP_DPAD_LEFT);
-                        sendButton(GamepadButtons::DPadRight, K_GP_DPAD_RIGHT);
-                        sendButton(GamepadButtons::Guide, K_GP_GUIDE);
-                        sendButton(GamepadButtons::Paddle1, K_GP_PADDLE1);
-                        sendButton(GamepadButtons::Paddle2, K_GP_PADDLE2);
-                        sendButton(GamepadButtons::Paddle3, K_GP_PADDLE3);
-                        sendButton(GamepadButtons::Paddle4, K_GP_PADDLE4);
-                        sendButton(GamepadButtons::Misc1, K_GP_MISC1);
-
-                        bool leftTriggerNow = reading.LeftTrigger >= kTriggerButtonThreshold;
-                        bool rightTriggerNow = reading.RightTrigger >= kTriggerButtonThreshold;
-                        if (leftTriggerNow != state.leftTriggerPressed)
-                                IN_KeyEvent(devid, leftTriggerNow, K_GP_LEFT_TRIGGER, 0);
-                        if (rightTriggerNow != state.rightTriggerPressed)
-                                IN_KeyEvent(devid, rightTriggerNow, K_GP_RIGHT_TRIGGER, 0);
-
-                        state.leftTriggerPressed = leftTriggerNow;
-                        state.rightTriggerPressed = rightTriggerNow;
-
-                        IN_JoystickAxisEvent(devid, GPAXIS_LT_RIGHT, static_cast<float>(reading.LeftThumbstickX));
-                        IN_JoystickAxisEvent(devid, GPAXIS_LT_DOWN, static_cast<float>(-reading.LeftThumbstickY));
-                        IN_JoystickAxisEvent(devid, GPAXIS_RT_RIGHT, static_cast<float>(reading.RightThumbstickX));
-                        IN_JoystickAxisEvent(devid, GPAXIS_RT_DOWN, static_cast<float>(-reading.RightThumbstickY));
-                        IN_JoystickAxisEvent(devid, GPAXIS_LT_TRIGGER, static_cast<float>(reading.LeftTrigger));
-                        IN_JoystickAxisEvent(devid, GPAXIS_RT_TRIGGER, static_cast<float>(reading.RightTrigger));
-
+                if (!state.device)
+                        continue;
+                auto reading = state.device.GetCurrentReading();
+                GamepadButtons buttons = reading.Buttons;
+                GamepadButtons changed = buttons ^ state.lastButtons;
+                unsigned int devid = state.qdevid;
+                if (devid == DEVID_UNSET)
+                {
                         state.lastButtons = buttons;
                         state.lastReading = reading;
+                        state.leftTriggerPressed = reading.LeftTrigger >= kTriggerButtonThreshold;
+                        state.rightTriggerPressed = reading.RightTrigger >= kTriggerButtonThreshold;
+                        continue;
+                }
+
+                auto sendButton = [&](GamepadButtons flag, int key)
+                {
+                        if (static_cast<bool>(changed & flag))
+                                IN_KeyEvent(devid, static_cast<bool>(buttons & flag), key, 0);
+                };
+
+                sendButton(GamepadButtons::A, K_GP_DIAMOND_DOWN);
+                sendButton(GamepadButtons::B, K_GP_DIAMOND_RIGHT);
+                sendButton(GamepadButtons::X, K_GP_DIAMOND_LEFT);
+                sendButton(GamepadButtons::Y, K_GP_DIAMOND_UP);
+                sendButton(GamepadButtons::View, K_GP_VIEW);
+                sendButton(GamepadButtons::Menu, K_GP_MENU);
+                sendButton(GamepadButtons::LeftShoulder, K_GP_LEFT_SHOULDER);
+                sendButton(GamepadButtons::RightShoulder, K_GP_RIGHT_SHOULDER);
+                sendButton(GamepadButtons::LeftThumbstick, K_GP_LEFT_STICK);
+                sendButton(GamepadButtons::RightThumbstick, K_GP_RIGHT_STICK);
+                sendButton(GamepadButtons::DPadUp, K_GP_DPAD_UP);
+                sendButton(GamepadButtons::DPadDown, K_GP_DPAD_DOWN);
+                sendButton(GamepadButtons::DPadLeft, K_GP_DPAD_LEFT);
+                sendButton(GamepadButtons::DPadRight, K_GP_DPAD_RIGHT);
+                sendButton(GamepadButtons::Guide, K_GP_GUIDE);
+                sendButton(GamepadButtons::Paddle1, K_GP_PADDLE1);
+                sendButton(GamepadButtons::Paddle2, K_GP_PADDLE2);
+                sendButton(GamepadButtons::Paddle3, K_GP_PADDLE3);
+                sendButton(GamepadButtons::Paddle4, K_GP_PADDLE4);
+                sendButton(GamepadButtons::Misc1, K_GP_MISC1);
+
+                bool leftTriggerNow = reading.LeftTrigger >= kTriggerButtonThreshold;
+                bool rightTriggerNow = reading.RightTrigger >= kTriggerButtonThreshold;
+                if (leftTriggerNow != state.leftTriggerPressed)
+                        IN_KeyEvent(devid, leftTriggerNow, K_GP_LEFT_TRIGGER, 0);
+                if (rightTriggerNow != state.rightTriggerPressed)
+                        IN_KeyEvent(devid, rightTriggerNow, K_GP_RIGHT_TRIGGER, 0);
+
+                state.leftTriggerPressed = leftTriggerNow;
+                state.rightTriggerPressed = rightTriggerNow;
+
+                IN_JoystickAxisEvent(devid, GPAXIS_LT_RIGHT, static_cast<float>(reading.LeftThumbstickX));
+                IN_JoystickAxisEvent(devid, GPAXIS_LT_DOWN, static_cast<float>(-reading.LeftThumbstickY));
+                IN_JoystickAxisEvent(devid, GPAXIS_RT_RIGHT, static_cast<float>(reading.RightThumbstickX));
+                IN_JoystickAxisEvent(devid, GPAXIS_RT_DOWN, static_cast<float>(-reading.RightThumbstickY));
+                IN_JoystickAxisEvent(devid, GPAXIS_LT_TRIGGER, static_cast<float>(reading.LeftTrigger));
+                IN_JoystickAxisEvent(devid, GPAXIS_RT_TRIGGER, static_cast<float>(reading.RightTrigger));
+
+                state.lastButtons = buttons;
+                state.lastReading = reading;
         }
 }
 
@@ -695,16 +724,16 @@ static void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
                         g_displayInformation = display;
                         SysWinRT_UpdateScale(display);
                         g_dpiChangedRevoker = display.DpiChanged(winrt::auto_revoke,
-                                [](DisplayInformation const &sender, IInspectable const &)
-                                {
-                                        SysWinRT_UpdateScale(sender);
-                                        if (g_coreWindow)
-                                        {
-                                                auto bounds = g_coreWindow.Bounds();
-                                                SysWinRT_UpdateCachedSize(bounds.Width, bounds.Height);
-                                                D3D11_DoResize(g_cachedWidth.load(), g_cachedHeight.load());
-                                        }
-                                });
+                                                                 [](DisplayInformation const &sender, IInspectable const &)
+                                                                 {
+                                                                         SysWinRT_UpdateScale(sender);
+                                                                         if (g_coreWindow)
+                                                                         {
+                                                                                 auto bounds = g_coreWindow.Bounds();
+                                                                                 SysWinRT_UpdateCachedSize(bounds.Width, bounds.Height);
+                                                                                 D3D11_DoResize(g_cachedWidth.load(), g_cachedHeight.load());
+                                                                         }
+                                                                 });
                 }
         }
         catch (const winrt::hresult_error &)
@@ -715,147 +744,147 @@ static void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
         SysWinRT_UpdateCachedSize(bounds.Width, bounds.Height);
 
         g_sizeChangedRevoker = window.SizeChanged(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, WinRTWindowSizeChangedEventArgs const &args)
-                {
-                        auto size = args.Size();
-                        SysWinRT_UpdateCachedSize(size.Width, size.Height);
-                        D3D11_DoResize(g_cachedWidth.load(), g_cachedHeight.load());
-                });
+                                                  [](WinRTCoreWindow const &, WinRTWindowSizeChangedEventArgs const &args)
+                                                  {
+                                                          auto size = args.Size();
+                                                          SysWinRT_UpdateCachedSize(size.Width, size.Height);
+                                                          D3D11_DoResize(g_cachedWidth.load(), g_cachedHeight.load());
+                                                  });
 
         g_windowVisible = window.Visible();
         g_windowActivated = true;
         SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
 
         g_visibilityChangedRevoker = window.VisibilityChanged(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, WinRTVisibilityChangedEventArgs const &args)
-                {
-                        g_windowVisible = args.Visible();
-                        SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
-                });
+                                                              [](WinRTCoreWindow const &, WinRTVisibilityChangedEventArgs const &args)
+                                                              {
+                                                                      g_windowVisible = args.Visible();
+                                                                      SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
+                                                              });
 
         g_activatedRevoker = window.Activated(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, WinRTWindowActivatedEventArgs const &args)
-                {
-                        g_windowActivated = args.WindowActivationState() != CoreWindowActivationState::Deactivated;
-                        SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
-                });
+                                              [](WinRTCoreWindow const &, WinRTWindowActivatedEventArgs const &args)
+                                              {
+                                                      g_windowActivated = args.WindowActivationState() != CoreWindowActivationState::Deactivated;
+                                                      SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
+                                              });
 
         g_keyDownRevoker = window.KeyDown(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, KeyEventArgs const &args)
-                {
-                        auto status = args.KeyStatus();
-                        int key = SysWinRT_MapScanCode(status.ScanCode);
-                        SysWinRT_PostKeyEvent(g_keyboardDeviceId, true, key);
-                });
+                                          [](WinRTCoreWindow const &, KeyEventArgs const &args)
+                                          {
+                                                  auto status = args.KeyStatus();
+                                                  int key = SysWinRT_MapScanCode(status.ScanCode);
+                                                  SysWinRT_PostKeyEvent(g_keyboardDeviceId, true, key);
+                                          });
 
         g_keyUpRevoker = window.KeyUp(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, KeyEventArgs const &args)
-                {
-                        auto status = args.KeyStatus();
-                        int key = SysWinRT_MapScanCode(status.ScanCode);
-                        SysWinRT_PostKeyEvent(g_keyboardDeviceId, false, key);
-                });
+                                      [](WinRTCoreWindow const &, KeyEventArgs const &args)
+                                      {
+                                              auto status = args.KeyStatus();
+                                              int key = SysWinRT_MapScanCode(status.ScanCode);
+                                              SysWinRT_PostKeyEvent(g_keyboardDeviceId, false, key);
+                                      });
 
         g_characterRevoker = window.CharacterReceived(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, CharacterReceivedEventArgs const &args)
-                {
-                        SysWinRT_PostCharEvent(g_keyboardDeviceId, static_cast<int>(args.KeyCode()));
-                });
+                                                      [](WinRTCoreWindow const &, CharacterReceivedEventArgs const &args)
+                                                      {
+                                                              SysWinRT_PostCharEvent(g_keyboardDeviceId, static_cast<int>(args.KeyCode()));
+                                                      });
 
         g_pointerMovedRevoker = window.PointerMoved(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, PointerEventArgs const &args)
-                {
-                        auto point = args.CurrentPoint();
-                        g_pointerX = point.Position().X;
-                        g_pointerY = point.Position().Y;
-                        g_pointerValid = true;
-                        SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
-                                SysWinRT_ToPixels(g_pointerX),
-                                SysWinRT_ToPixels(g_pointerY),
-                                0.0f, 0.0f);
-                });
+                                                    [](WinRTCoreWindow const &, PointerEventArgs const &args)
+                                                    {
+                                                            auto point = args.CurrentPoint();
+                                                            g_pointerX = point.Position().X;
+                                                            g_pointerY = point.Position().Y;
+                                                            g_pointerValid = true;
+                                                            SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
+                                                                                      SysWinRT_ToPixels(g_pointerX),
+                                                                                      SysWinRT_ToPixels(g_pointerY),
+                                                                                      0.0f, 0.0f);
+                                                    });
 
         g_pointerPressedRevoker = window.PointerPressed(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, PointerEventArgs const &args)
-                {
-                        auto point = args.CurrentPoint();
-                        g_pointerX = point.Position().X;
-                        g_pointerY = point.Position().Y;
-                        g_pointerValid = true;
-                        SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
-                                SysWinRT_ToPixels(g_pointerX),
-                                SysWinRT_ToPixels(g_pointerY),
-                                0.0f, 0.0f);
+                                                        [](WinRTCoreWindow const &, PointerEventArgs const &args)
+                                                        {
+                                                                auto point = args.CurrentPoint();
+                                                                g_pointerX = point.Position().X;
+                                                                g_pointerY = point.Position().Y;
+                                                                g_pointerValid = true;
+                                                                SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
+                                                                                          SysWinRT_ToPixels(g_pointerX),
+                                                                                          SysWinRT_ToPixels(g_pointerY),
+                                                                                          0.0f, 0.0f);
 
-                        switch (point.Properties().PointerUpdateKind())
-                        {
-                        case PointerUpdateKind::LeftButtonPressed:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE1);
-                                break;
-                        case PointerUpdateKind::RightButtonPressed:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE2);
-                                break;
-                        case PointerUpdateKind::MiddleButtonPressed:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE3);
-                                break;
-                        case PointerUpdateKind::XButton1Pressed:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE4);
-                                break;
-                        case PointerUpdateKind::XButton2Pressed:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE5);
-                                break;
-                        default:
-                                break;
-                        }
-                });
+                                                                switch (point.Properties().PointerUpdateKind())
+                                                                {
+                                                                case PointerUpdateKind::LeftButtonPressed:
+                                                                        SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE1);
+                                                                        break;
+                                                                case PointerUpdateKind::RightButtonPressed:
+                                                                        SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE2);
+                                                                        break;
+                                                                case PointerUpdateKind::MiddleButtonPressed:
+                                                                        SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE3);
+                                                                        break;
+                                                                case PointerUpdateKind::XButton1Pressed:
+                                                                        SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE4);
+                                                                        break;
+                                                                case PointerUpdateKind::XButton2Pressed:
+                                                                        SysWinRT_PostKeyEvent(g_pointerDeviceId, true, K_MOUSE5);
+                                                                        break;
+                                                                default:
+                                                                        break;
+                                                                }
+                                                        });
 
         g_pointerReleasedRevoker = window.PointerReleased(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, PointerEventArgs const &args)
-                {
-                        auto point = args.CurrentPoint();
-                        g_pointerX = point.Position().X;
-                        g_pointerY = point.Position().Y;
-                        g_pointerValid = true;
-                        SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
-                                SysWinRT_ToPixels(g_pointerX),
-                                SysWinRT_ToPixels(g_pointerY),
-                                0.0f, 0.0f);
+                                                          [](WinRTCoreWindow const &, PointerEventArgs const &args)
+                                                          {
+                                                                  auto point = args.CurrentPoint();
+                                                                  g_pointerX = point.Position().X;
+                                                                  g_pointerY = point.Position().Y;
+                                                                  g_pointerValid = true;
+                                                                  SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
+                                                                                            SysWinRT_ToPixels(g_pointerX),
+                                                                                            SysWinRT_ToPixels(g_pointerY),
+                                                                                            0.0f, 0.0f);
 
-                        switch (point.Properties().PointerUpdateKind())
-                        {
-                        case PointerUpdateKind::LeftButtonReleased:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE1);
-                                break;
-                        case PointerUpdateKind::RightButtonReleased:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE2);
-                                break;
-                        case PointerUpdateKind::MiddleButtonReleased:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE3);
-                                break;
-                        case PointerUpdateKind::XButton1Released:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE4);
-                                break;
-                        case PointerUpdateKind::XButton2Released:
-                                SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE5);
-                                break;
-                        default:
-                                break;
-                        }
-                });
+                                                                  switch (point.Properties().PointerUpdateKind())
+                                                                  {
+                                                                  case PointerUpdateKind::LeftButtonReleased:
+                                                                          SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE1);
+                                                                          break;
+                                                                  case PointerUpdateKind::RightButtonReleased:
+                                                                          SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE2);
+                                                                          break;
+                                                                  case PointerUpdateKind::MiddleButtonReleased:
+                                                                          SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE3);
+                                                                          break;
+                                                                  case PointerUpdateKind::XButton1Released:
+                                                                          SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE4);
+                                                                          break;
+                                                                  case PointerUpdateKind::XButton2Released:
+                                                                          SysWinRT_PostKeyEvent(g_pointerDeviceId, false, K_MOUSE5);
+                                                                          break;
+                                                                  default:
+                                                                          break;
+                                                                  }
+                                                          });
 
         g_pointerWheelRevoker = window.PointerWheelChanged(winrt::auto_revoke,
-                [](WinRTCoreWindow const &, PointerEventArgs const &args)
-                {
-                        auto point = args.CurrentPoint();
-                        g_pointerX = point.Position().X;
-                        g_pointerY = point.Position().Y;
-                        g_pointerValid = true;
-                        float delta = static_cast<float>(point.Properties().MouseWheelDelta()) / 120.0f;
-                        SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
-                                SysWinRT_ToPixels(g_pointerX),
-                                SysWinRT_ToPixels(g_pointerY),
-                                delta, 0.0f);
-                });
+                                                           [](WinRTCoreWindow const &, PointerEventArgs const &args)
+                                                           {
+                                                                   auto point = args.CurrentPoint();
+                                                                   g_pointerX = point.Position().X;
+                                                                   g_pointerY = point.Position().Y;
+                                                                   g_pointerValid = true;
+                                                                   float delta = static_cast<float>(point.Properties().MouseWheelDelta()) / 120.0f;
+                                                                   SysWinRT_PostPointerEvent(g_pointerDeviceId, true,
+                                                                                             SysWinRT_ToPixels(g_pointerX),
+                                                                                             SysWinRT_ToPixels(g_pointerY),
+                                                                                             delta, 0.0f);
+                                                           });
 }
 
 static WinRTCoreWindow SysWinRT_TryGetWindow()
@@ -884,54 +913,34 @@ static WinRTCoreWindow SysWinRT_TryGetWindow()
         return g_coreWindow;
 }
 
-static void SysWinRT_InitRuntime()
+extern "C" void FS_AddGameDirectory(const char *dir);
+
+void SysWinRT_InitRuntime()
 {
         try
         {
-                winrt::init_apartment();
-        }
-        catch (const winrt::hresult_error &)
-        {
-        }
+                auto installFolder = Windows::ApplicationModel::Package::Current->InstalledLocation;
+                std::wstring path(installFolder->Path->Data());
 
-        try
-        {
-                auto data = ApplicationData::Current();
-                g_localStatePath = data.LocalFolder().Path().c_str();
-        }
-        catch (const winrt::hresult_error &)
-        {
-                g_localStatePath.clear();
-        }
+                g_localStatePath = Sys_WideToUTF8(path.c_str());
+                g_localStatePath += "/games";
 
-        SysWinRT_TryGetWindow();
+                Sys_Printf("Using InstalledLocation path override: %s\n", g_localStatePath.c_str());
 
-        try
-        {
-                g_suspendingRevoker = CoreApplication::Suspending(winrt::auto_revoke,
-                        [](IInspectable const &, SuspendingEventArgs const &args)
-                        {
-                                SuspendingOperation operation = args.SuspendingOperation();
-                                SuspendingDeferral deferral = nullptr;
-                                if (operation)
-                                        deferral = operation.GetDeferral();
-                                SysWinRT_HandleSuspended();
-                                if (deferral)
-                                        deferral.Complete();
-                        });
-                g_resumingRevoker = CoreApplication::Resuming(winrt::auto_revoke,
-                        [](IInspectable const &, IInspectable const &)
-                        {
-                                SysWinRT_HandleResumed();
-                        });
+                // 🔹 Force FreeHL as active gamedir
+                FS_AddGameDirectory("/games");
         }
-        catch (const winrt::hresult_error &)
+        catch (Platform::Exception ^ ex)
         {
-        }
+                Sys_Printf("Failed to get InstalledLocation, defaulting to LocalState.\n");
 
-        QueryPerformanceFrequency(&g_timeFreq);
-        QueryPerformanceCounter(&g_timeStart);
-        g_timeReady = true;
+                auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
+                std::wstring path(localFolder->Path->Data());
+                g_localStatePath = Sys_WideToUTF8(path.c_str());
+                g_localStatePath += "/games";
+
+                FS_AddGameDirectory("/games");
+        }
 }
 
 static void SysWinRT_EnsureRuntime()
@@ -1044,6 +1053,17 @@ void Sys_CloseLibrary(dllhandle_t *lib)
 void Sys_Init(void)
 {
         SysWinRT_EnsureRuntime();
+        if (!g_localStatePath.empty())
+        {
+                g_localStatePathUtf8 = SysWinRT_ToUtf8(g_localStatePath);
+                if (!g_localStatePathUtf8.empty())
+                {
+                        if (g_localStatePathUtf8.back() != '\\' && g_localStatePathUtf8.back() != '/')
+                                g_localStatePathUtf8.push_back('\\');
+                        host_parms.basedir = g_localStatePathUtf8.c_str();
+                        host_parms.binarydir = host_parms.basedir;
+                }
+        }
         Cmd_AddCommandD("sys_openfile", SysWinRT_OpenFilePicker_f, "Select a file to open/install/etc.");
         Sys_Printf("WinRT runtime initialised\n");
 }
@@ -1276,11 +1296,11 @@ void INS_Init(void)
         try
         {
                 g_gamepadAddedRevoker = Gamepad::GamepadAdded(winrt::auto_revoke,
-                        [](IInspectable const &, Gamepad const &pad)
-                        {
-                                std::lock_guard<std::mutex> guard(g_gamepadMutex);
-                                SysWinRT_AddGamepad(pad);
-                        });
+                                                              [](IInspectable const &, Gamepad const &pad)
+                                                              {
+                                                                      std::lock_guard<std::mutex> guard(g_gamepadMutex);
+                                                                      SysWinRT_AddGamepad(pad);
+                                                              });
         }
         catch (const winrt::hresult_error &)
         {
@@ -1289,11 +1309,11 @@ void INS_Init(void)
         try
         {
                 g_gamepadRemovedRevoker = Gamepad::GamepadRemoved(winrt::auto_revoke,
-                        [](IInspectable const &, Gamepad const &pad)
-                        {
-                                std::lock_guard<std::mutex> guard(g_gamepadMutex);
-                                SysWinRT_RemoveGamepad(pad);
-                        });
+                                                                  [](IInspectable const &, Gamepad const &pad)
+                                                                  {
+                                                                          std::lock_guard<std::mutex> guard(g_gamepadMutex);
+                                                                          SysWinRT_RemoveGamepad(pad);
+                                                                  });
         }
         catch (const winrt::hresult_error &)
         {
@@ -1418,7 +1438,7 @@ qboolean INS_KeyToLocalName(int qkey, char *buf, size_t bufsize)
         return false;
 }
 
-void INS_EnumerateDevices(void *ctx, void(*callback)(void *ctx, const char *type, const char *devicename, unsigned int *qdevid))
+void INS_EnumerateDevices(void *ctx, void (*callback)(void *ctx, const char *type, const char *devicename, unsigned int *qdevid))
 {
         if (!callback)
                 return;
@@ -1646,15 +1666,24 @@ static std::wstring SysWinRT_SanitizeSegment(std::wstring segment)
 {
         for (auto &ch : segment)
         {
-                if (ch < 32 || ch == L'<') ch = L'_';
-                else if (ch == L'>') ch = L'_';
-                else if (ch == L':') ch = L'_';
-                else if (ch == L'"') ch = L'_';
-                else if (ch == L'/') ch = L'_';
-                else if (ch == L'\\') ch = L'_';
-                else if (ch == L'|') ch = L'_';
-                else if (ch == L'?') ch = L'_';
-                else if (ch == L'*') ch = L'_';
+                if (ch < 32 || ch == L'<')
+                        ch = L'_';
+                else if (ch == L'>')
+                        ch = L'_';
+                else if (ch == L':')
+                        ch = L'_';
+                else if (ch == L'"')
+                        ch = L'_';
+                else if (ch == L'/')
+                        ch = L'_';
+                else if (ch == L'\\')
+                        ch = L'_';
+                else if (ch == L'|')
+                        ch = L'_';
+                else if (ch == L'?')
+                        ch = L'_';
+                else if (ch == L'*')
+                        ch = L'_';
         }
         while (!segment.empty() && (segment.back() == L'.' || segment.back() == L' '))
                 segment.pop_back();
@@ -2031,7 +2060,6 @@ qboolean Sys_rmdir(const char *path)
         {
                 return false;
         }
-
 }
 
 qboolean Sys_remove(const char *path)
