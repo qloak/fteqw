@@ -30,15 +30,6 @@ drive the UWP configuration. A starter manifest lives in
 how to turn the build artifacts into a signed AppX/MSIX bundle for sideloading.
 
 
-Easy Build Bot System:
-If you want to set up a linux box that cross-compiles each target with your own private customisations, then you can run the build_setup.sh script to set up which targets you wish to support.
-You can then just run the build_wip.sh script any time your code changes to have it rebuild every target you previously picked.
-The script can also be run from cygwin, but does not support compiling for linux then.
-(The setup script will install android+emscripten dependancies for you, so you're likely to find this an easier way to deal with those special targets).
-(note that the android sdk can be a big download, while installing emscripten may require several hours to compile clang and about 40gb of disk space if emscripten doesn't provide prebuilt stuff for your distro).
-
-
-
 
 To compile the FTEDroid port with cygwin:
 make droid-rel PATH=C:\Cygwin\bin\ DROID_SDK_PATH=/cygdrive/c/Games/tools/android-sdk DROID_NDK_PATH=/cygdrive/c/Games/tools/android-ndk-r7 ANT=/cygdrive/c/Games/tools/apache-ant-1.8.2/bin/ant JAVATOOL="/cygdrive/c/Program\ Files/Java/jdk1.7.0_02/bin/" DROID_ARCH="armeabi x86" -j4 DROID_PACKSU=/cygdrive/c/games/quake/id1/pak0.pak

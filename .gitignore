@@ -40,3 +40,16 @@ engine/droid/ftekeystore
 engine/droid/proguard-project.txt
 engine/droid/project.properties
 
+# Ignore build outputs
+build/
+*.msix
+*.appx
+*.cer
+*.pfx
+*.pvk
+*.opendb
+*.VC.db
+*.VC.opendb
+
+# Ignore VS cache
+.vs/

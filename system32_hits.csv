@@ -1,0 +1,4 @@
+"File","Line","Text"
+"C:\dev\fteqw\engine\gl\gl_vidnt.c","686","//instead, we explicitly try to use the opengl32.dll from the windows system32 directory to try and avoid using the wrapper."
+"C:\dev\fteqw\build\uwp\x64\CMakeCache.txt","552","Z_VCPKG_BUILTIN_POWERSHELL_PATH:FILEPATH=C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+"C:\dev\fteqw\build\uwp\x64\CMakeCache.txt","823","Z_VCPKG_POWERSHELL_PATH:INTERNAL=C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"

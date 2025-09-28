@@ -1,0 +1,37 @@
+# MSIX Conversion Accelerator
+
+PackageName: FTEQuake Engine
+
+PublisherName: qloak
+
+PackageVersion: 1.0.1.0
+
+EligibleForConversion: Yes
+
+ConversionStatus: Package Created. Need Validation
+
+RemediationApproach:
+- SequenceNumber: 1
+  Issue:
+    Description: PSF Fixup
+  Fix:
+    FixType: PSF
+    FixDetails:
+      PSFConfig:
+        applications:
+        - id: FTEQuake
+          executable: fteqw.exe
+          workingDirectory: AppData\LocalState\games
+
+Edition: Microsoft Windows 11 Pro
+
+MinimumOSVersion: 24H2
+
+MinimumOSBuild: 26100.6584
+
+Architecture: 64
+
+MSIXConversionToolVersion: 1.2024.405.0
+
+AcceleratorVersion: 1.0.0
+

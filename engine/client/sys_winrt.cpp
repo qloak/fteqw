@@ -905,6 +905,7 @@ static void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
                                 SysWinRT_ToPixels(g_pointerY),
                                 delta, 0.0f);
                 });
+
 }
 
 static WinRTCoreWindow SysWinRT_TryGetWindow()

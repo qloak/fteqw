@@ -29,6 +29,24 @@ we have two types of relay here.
 	for use with `connectbr` and compat with things that expect it.
 */
 
+#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
+#   include <malloc.h>
+#   define alloca _malloca
+#elif defined(_WIN32)
+#   include <malloc.h>
+#   define alloca _alloca
+#elif defined(__GNUC__)
+#   include <alloca.h>
+#endif
+
+#ifdef _WIN32
+typedef int socklen_t;
+#endif
+
+#ifndef _true
+#define _true 1
+#endif
+
 #include "qtv.h"
 #include <string.h>
 #include <time.h>
@@ -343,7 +361,7 @@ void TURN_CheckFDs(cluster_t *cluster)
 	int ofs = 20 + 4+20 + 4;
 	char buf[8192];
 	int len;
-	int addrlen;
+	socklen_t addrlen;
 	struct turnclient_s *t, **link;
 	netadr_t from = {NULL};
 
@@ -489,9 +507,12 @@ static struct turnclient_s *TURN_Allocate(cluster_t *cluster, netadr_t *clientad
 	if (pf == AF_INET6)
 		setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&v6only, sizeof(v6only));
 
+
 #if defined(_WIN32) && defined(SO_EXCLUSIVEADDRUSE)
-	//win32 is so fucked up
-	setsockopt(newsocket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *)&_true, sizeof(_true));
+	{
+		int optval = 1;
+		setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&optval, sizeof(optval));
+	}
 #endif
 
 	for (tries = 5; ; tries--)

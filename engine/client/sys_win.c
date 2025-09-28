@@ -36,15 +36,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MSVC_SEH
 #endif
 
-//#define RESTARTTEST
+// #define RESTARTTEST
 
 #ifdef MULTITHREAD
 #include <process.h>
 #endif
 
-//exports that 3rd-party drivers can see in order to use descrete graphics cards over integrated ones, FOR MORE POWAH!
+// exports that 3rd-party drivers can see in order to use descrete graphics cards over integrated ones, FOR MORE POWAH!
 __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;	//13.35+
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1; // 13.35+
 
 static void Sys_InitClock(void);
 static void Sys_ClockType_Changed(cvar_t *var, char *oldval);
@@ -69,12 +69,12 @@ qboolean isDedicated = false;
 #endif
 extern int isPlugin;
 qboolean debugout;
-float gammapending;	//to cope with ATI. When it times out, v_gamma is reforced in order to correct/update gamma now the drivers think that they have won.
+float gammapending; // to cope with ATI. When it times out, v_gamma is reforced in order to correct/update gamma now the drivers think that they have won.
 
 HWND sys_parentwindow;
-unsigned int sys_parentleft;	//valid if sys_parentwindow is set
+unsigned int sys_parentleft; // valid if sys_parentwindow is set
 unsigned int sys_parenttop;
-unsigned int sys_parentwidth;	//valid if sys_parentwindow is set
+unsigned int sys_parentwidth; // valid if sys_parentwindow is set
 unsigned int sys_parentheight;
 
 static struct
@@ -86,12 +86,11 @@ static struct
 } desktopsettings;
 static void Sys_QueryDesktopParameters(void);
 
-//used to do special things with awkward windows versions.
+// used to do special things with awkward windows versions.
 int qwinvermaj;
 int qwinvermin;
 
-char		*sys_argv[MAX_NUM_ARGVS];
-
+char *sys_argv[MAX_NUM_ARGVS];
 
 #ifdef RESTARTTEST
 jmp_buf restart_jmpbuf;
@@ -104,36 +103,36 @@ Sys_RandomBytes
 #include <wincrypt.h>
 qboolean Sys_RandomBytes(qbyte *string, int len)
 {
-	HCRYPTPROV  prov;
+	HCRYPTPROV prov;
 
-	if(!CryptAcquireContext( &prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+	if (!CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
 	{
 		return false;
 	}
 
-	if(!CryptGenRandom(prov, len, (BYTE *)string))
+	if (!CryptGenRandom(prov, len, (BYTE *)string))
 	{
-		CryptReleaseContext( prov, 0);
+		CryptReleaseContext(prov, 0);
 		return false;
 	}
 	CryptReleaseContext(prov, 0);
 	return true;
 }
 #ifndef CALG_SHA_512
-#define ALG_SID_SHA_256                 12
-#define ALG_SID_SHA_384                 13
-#define ALG_SID_SHA_512                 14
-#define CALG_SHA_256            (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_256)
-#define CALG_SHA_384            (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_384)
-#define CALG_SHA_512            (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_512)
+#define ALG_SID_SHA_256 12
+#define ALG_SID_SHA_384 13
+#define ALG_SID_SHA_512 14
+#define CALG_SHA_256 (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_256)
+#define CALG_SHA_384 (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_384)
+#define CALG_SHA_512 (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA_512)
 #endif
 
-//returns 0 on failure, otherwise returns the actual digest size and the digest (overallocate if lazy)
+// returns 0 on failure, otherwise returns the actual digest size and the digest (overallocate if lazy)
 size_t HashCalculate(const char *hashtype, const void *data, size_t data_size, void *digest_out, size_t digest_size)
 {
-	HCRYPTPROV	prov;
-	HCRYPTHASH	hash;
-	ALG_ID		alg;
+	HCRYPTPROV prov;
+	HCRYPTHASH hash;
+	ALG_ID alg;
 
 	if (!Q_strcasecmp(hashtype, "MD4"))
 		alg = CALG_MD4;
@@ -143,22 +142,22 @@ size_t HashCalculate(const char *hashtype, const void *data, size_t data_size, v
 		alg = CALG_SHA1;
 #ifdef CALG_SHA_256
 	else if (!Q_strcasecmp(hashtype, "SHA256"))
-		alg = CALG_SHA_256;	//only on xp sp3+
+		alg = CALG_SHA_256; // only on xp sp3+
 #endif
 #ifdef CALG_SHA_384
 	else if (!Q_strcasecmp(hashtype, "SHA384"))
-		alg = CALG_SHA_384;	//only on xp sp3+
+		alg = CALG_SHA_384; // only on xp sp3+
 #endif
 #ifdef CALG_SHA_512
 	else if (!Q_strcasecmp(hashtype, "SHA512"))
-		alg = CALG_SHA_512;	//only on xp sp3+
+		alg = CALG_SHA_512; // only on xp sp3+
 #endif
 	else
 		return 0;
 
 	memset(digest_out, 0, digest_size);
 
-	if(CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+	if (CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
 	{
 		if (CryptCreateHash(prov, alg, 0, 0, &hash))
 		{
@@ -203,7 +202,7 @@ HMODULE LoadLibraryU(const char *name)
 		wchar_t wide[MAX_OSPATH];
 		char ansi[MAX_OSPATH];
 		widen(wide, sizeof(wide), name);
-		ansi[WideCharToMultiByte(CP_ACP, 0, wide, wcslen(wide), ansi, sizeof(ansi)-1, NULL, NULL)] = 0;
+		ansi[WideCharToMultiByte(CP_ACP, 0, wide, wcslen(wide), ansi, sizeof(ansi) - 1, NULL, NULL)] = 0;
 		ret = LoadLibraryA(ansi);
 	}
 	return ret;
@@ -218,7 +217,7 @@ dllhandle_t *Sys_LoadLibrary(const char *name, dllfunction_t *funcs)
 	if (!lib)
 	{
 		err = GetLastError();
-		switch(err)
+		switch (err)
 		{
 		case ERROR_MOD_NOT_FOUND:
 			break;
@@ -234,7 +233,7 @@ dllhandle_t *Sys_LoadLibrary(const char *name, dllfunction_t *funcs)
 		}
 
 		if (!strstr(COM_SkipPath(name), ".dll"))
-		{	//.dll implies that it is a system dll, or something that is otherwise windows-specific already.
+		{ //.dll implies that it is a system dll, or something that is otherwise windows-specific already.
 			char libname[MAX_OSPATH];
 #ifdef _WIN64
 			Q_snprintfz(libname, sizeof(libname), "%s_64", name);
@@ -260,12 +259,12 @@ dllhandle_t *Sys_LoadLibrary(const char *name, dllfunction_t *funcs)
 		if (funcs[i].name)
 		{
 			Con_DPrintf("Missing export \"%s\" in \"%s\"\n", funcs[i].name, name);
-			Sys_CloseLibrary((dllhandle_t*)lib);
+			Sys_CloseLibrary((dllhandle_t *)lib);
 			lib = NULL;
 		}
 	}
 
-	return (dllhandle_t*)lib;
+	return (dllhandle_t *)lib;
 }
 
 void *Sys_GetAddressForName(dllhandle_t *module, const char *exportname)
@@ -277,15 +276,15 @@ void *Sys_GetAddressForName(dllhandle_t *module, const char *exportname)
 #ifdef HLSERVER
 char *Sys_GetNameForAddress(dllhandle_t *module, void *address)
 {
-	//windows doesn't provide a function to do this, so we have to do it ourselves.
-	//this isn't the fastest way...
-	//halflife needs this function.
+	// windows doesn't provide a function to do this, so we have to do it ourselves.
+	// this isn't the fastest way...
+	// halflife needs this function.
 	char *base = (char *)module;
 
 	IMAGE_DATA_DIRECTORY *datadir;
 	IMAGE_EXPORT_DIRECTORY *block;
 	IMAGE_NT_HEADERS *ntheader;
-	IMAGE_DOS_HEADER *dosheader = (void*)base;
+	IMAGE_DOS_HEADER *dosheader = (void *)base;
 
 	int i, j;
 	DWORD *funclist;
@@ -293,31 +292,30 @@ char *Sys_GetNameForAddress(dllhandle_t *module, void *address)
 	SHORT *ordilist;
 
 	if (!dosheader || dosheader->e_magic != IMAGE_DOS_SIGNATURE)
-		return NULL; //yeah, that wasn't an exe
+		return NULL; // yeah, that wasn't an exe
 
-	ntheader = (void*)(base + dosheader->e_lfanew);
+	ntheader = (void *)(base + dosheader->e_lfanew);
 	if (!dosheader->e_lfanew || ntheader->Signature != IMAGE_NT_SIGNATURE)
-		return NULL;	//urm, wait, a 16bit dos exe?
-
+		return NULL; // urm, wait, a 16bit dos exe?
 
 	datadir = &ntheader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
 
 	block = (IMAGE_EXPORT_DIRECTORY *)(base + datadir->VirtualAddress);
-	funclist = (DWORD*)(base+block->AddressOfFunctions);
-	namelist = (DWORD*)(base+block->AddressOfNames);
-	ordilist = (SHORT*)(base+block->AddressOfNameOrdinals);
+	funclist = (DWORD *)(base + block->AddressOfFunctions);
+	namelist = (DWORD *)(base + block->AddressOfNames);
+	ordilist = (SHORT *)(base + block->AddressOfNameOrdinals);
 	for (i = 0; i < block->NumberOfFunctions; i++)
 	{
-		if (base+funclist[i] == address)
+		if (base + funclist[i] == address)
 		{
 			for (j = 0; j < block->NumberOfNames; j++)
 			{
 				if (ordilist[j] == i)
 				{
-					return base+namelist[i];
+					return base + namelist[i];
 				}
 			}
-			//it has no name. huh?
+			// it has no name. huh?
 			return NULL;
 		}
 	}
@@ -325,15 +323,15 @@ char *Sys_GetNameForAddress(dllhandle_t *module, void *address)
 }
 #endif
 
-int		starttime;
+int starttime;
 qboolean Minimized;
-qboolean	WinNT;	//NT has a) proper unicode support that does not unconditionally result in errors. b) a few different registry paths.
+qboolean WinNT; // NT has a) proper unicode support that does not unconditionally result in errors. b) a few different registry paths.
 
-static HANDLE		hinput, houtput;
+static HANDLE hinput, houtput;
 
-HANDLE		qwclsemaphore;
+HANDLE qwclsemaphore;
 
-static HANDLE	tevent;
+static HANDLE tevent;
 
 int VARGS Sys_DebugLog(char *file, char *fmt, ...)
 {
@@ -342,7 +340,7 @@ int VARGS Sys_DebugLog(char *file, char *fmt, ...)
 	static char data[1024];
 
 	va_start(argptr, fmt);
-	vsnprintf(data, sizeof(data)-1, fmt, argptr);
+	vsnprintf(data, sizeof(data) - 1, fmt, argptr);
 	va_end(argptr);
 
 #if defined(CRAZYDEBUGGING) && CRAZYDEBUGGING > 1
@@ -355,13 +353,13 @@ int VARGS Sys_DebugLog(char *file, char *fmt, ...)
 			int _true = true;
 			int listip;
 			listip = COM_CheckParm("-debugip");
-			NET_StringToAdr(listip?com_argv[listip+1]:"127.0.0.1", &na);
-			NetadrToSockadr(&na, (struct sockaddr_qstorage*)&sa);
+			NET_StringToAdr(listip ? com_argv[listip + 1] : "127.0.0.1", &na);
+			NetadrToSockadr(&na, (struct sockaddr_qstorage *)&sa);
 			sa.sin_port = htons(10000);
 			sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-			if (-1==connect(sock, (struct sockaddr*)&sa, sizeof(sa)))
+			if (-1 == connect(sock, (struct sockaddr *)&sa, sizeof(sa)))
 				Sys_Error("Couldn't send debug log lines\n");
-			setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&_true, sizeof(_true));
+			setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&_true, sizeof(_true));
 		}
 		send(sock, data, strlen(data), 0);
 	}
@@ -379,61 +377,59 @@ int VARGS Sys_DebugLog(char *file, char *fmt, ...)
 
 #ifdef CATCHCRASH
 #include "dbghelp.h"
-typedef BOOL (WINAPI *MINIDUMPWRITEDUMP) (
+typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
 	HANDLE hProcess,
 	DWORD ProcessId,
 	HANDLE hFile,
 	MINIDUMP_TYPE DumpType,
 	PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
 	PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-	PMINIDUMP_CALLBACK_INFORMATION CallbackParam
-	);
+	PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 void DumpGLState(void);
 void *watchdogthread;
-DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTION_POINTERS exceptionInfo)
+DWORD CrashExceptionHandler(qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTION_POINTERS exceptionInfo)
 {
 	HANDLE hProc = GetCurrentProcess();
 	HMODULE hKernel;
-	BOOL (WINAPI *pIsDebuggerPresent)(void);
-	DWORD (WINAPI *pSymSetOptions)(DWORD SymOptions);
-	BOOL (WINAPI *pSymInitialize)(HANDLE hProcess, PSTR UserSearchPath, BOOL fInvadeProcess);
-	BOOL (WINAPI *pSymFromAddr)(HANDLE hProcess, DWORD64 Address, PDWORD64 Displacement, PSYMBOL_INFO Symbol);
+	BOOL(WINAPI * pIsDebuggerPresent)(void);
+	DWORD(WINAPI * pSymSetOptions)(DWORD SymOptions);
+	BOOL(WINAPI * pSymInitialize)(HANDLE hProcess, PSTR UserSearchPath, BOOL fInvadeProcess);
+	BOOL(WINAPI * pSymFromAddr)(HANDLE hProcess, DWORD64 Address, PDWORD64 Displacement, PSYMBOL_INFO Symbol);
 
 #ifdef _WIN64
 #define DBGHELP_POSTFIX "64"
-	BOOL (WINAPI *pStackWalkX)(DWORD MachineType, HANDLE hProcess, HANDLE hThread, LPSTACKFRAME64 StackFrame, PVOID ContextRecord, PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine, PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine, PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine, PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress);
-	PVOID (WINAPI *pSymFunctionTableAccessX)(HANDLE hProcess, DWORD64 AddrBase);
-	DWORD64 (WINAPI *pSymGetModuleBaseX)(HANDLE hProcess, DWORD64 qwAddr);
-	BOOL (WINAPI *pSymGetLineFromAddrX)(HANDLE hProcess, DWORD64 qwAddr, PDWORD pdwDisplacement, PIMAGEHLP_LINE64 Line64);
-	BOOL (WINAPI *pSymGetModuleInfoX)(HANDLE hProcess, DWORD64 qwAddr, PIMAGEHLP_MODULE64 ModuleInfo);
-	#define STACKFRAMEX STACKFRAME64
-	#define IMAGEHLP_LINEX IMAGEHLP_LINE64
-	#define IMAGEHLP_MODULEX IMAGEHLP_MODULE64
+	BOOL(WINAPI * pStackWalkX)(DWORD MachineType, HANDLE hProcess, HANDLE hThread, LPSTACKFRAME64 StackFrame, PVOID ContextRecord, PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine, PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine, PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine, PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress);
+	PVOID(WINAPI * pSymFunctionTableAccessX)(HANDLE hProcess, DWORD64 AddrBase);
+	DWORD64(WINAPI * pSymGetModuleBaseX)(HANDLE hProcess, DWORD64 qwAddr);
+	BOOL(WINAPI * pSymGetLineFromAddrX)(HANDLE hProcess, DWORD64 qwAddr, PDWORD pdwDisplacement, PIMAGEHLP_LINE64 Line64);
+	BOOL(WINAPI * pSymGetModuleInfoX)(HANDLE hProcess, DWORD64 qwAddr, PIMAGEHLP_MODULE64 ModuleInfo);
+#define STACKFRAMEX STACKFRAME64
+#define IMAGEHLP_LINEX IMAGEHLP_LINE64
+#define IMAGEHLP_MODULEX IMAGEHLP_MODULE64
 #else
 #define DBGHELP_POSTFIX ""
-	BOOL (WINAPI *pStackWalkX)(DWORD MachineType, HANDLE hProcess, HANDLE hThread, LPSTACKFRAME StackFrame, PVOID ContextRecord, PREAD_PROCESS_MEMORY_ROUTINE ReadMemoryRoutine, PFUNCTION_TABLE_ACCESS_ROUTINE FunctionTableAccessRoutine, PGET_MODULE_BASE_ROUTINE GetModuleBaseRoutine, PTRANSLATE_ADDRESS_ROUTINE TranslateAddress);
-	PVOID (WINAPI *pSymFunctionTableAccessX)(HANDLE hProcess, DWORD AddrBase);
-	DWORD (WINAPI *pSymGetModuleBaseX)(HANDLE hProcess, DWORD dwAddr);
-	BOOL (WINAPI *pSymGetLineFromAddrX)(HANDLE hProcess, DWORD dwAddr, PDWORD pdwDisplacement, PIMAGEHLP_LINE Line);
-	BOOL (WINAPI *pSymGetModuleInfoX)(HANDLE hProcess, DWORD dwAddr, PIMAGEHLP_MODULE ModuleInfo);
-	#define STACKFRAMEX STACKFRAME
-	#define IMAGEHLP_LINEX IMAGEHLP_LINE
-	#define IMAGEHLP_MODULEX IMAGEHLP_MODULE
+	BOOL(WINAPI * pStackWalkX)(DWORD MachineType, HANDLE hProcess, HANDLE hThread, LPSTACKFRAME StackFrame, PVOID ContextRecord, PREAD_PROCESS_MEMORY_ROUTINE ReadMemoryRoutine, PFUNCTION_TABLE_ACCESS_ROUTINE FunctionTableAccessRoutine, PGET_MODULE_BASE_ROUTINE GetModuleBaseRoutine, PTRANSLATE_ADDRESS_ROUTINE TranslateAddress);
+	PVOID(WINAPI * pSymFunctionTableAccessX)(HANDLE hProcess, DWORD AddrBase);
+	DWORD(WINAPI * pSymGetModuleBaseX)(HANDLE hProcess, DWORD dwAddr);
+	BOOL(WINAPI * pSymGetLineFromAddrX)(HANDLE hProcess, DWORD dwAddr, PDWORD pdwDisplacement, PIMAGEHLP_LINE Line);
+	BOOL(WINAPI * pSymGetModuleInfoX)(HANDLE hProcess, DWORD dwAddr, PIMAGEHLP_MODULE ModuleInfo);
+#define STACKFRAMEX STACKFRAME
+#define IMAGEHLP_LINEX IMAGEHLP_LINE
+#define IMAGEHLP_MODULEX IMAGEHLP_MODULE
 #endif
 	dllfunction_t debughelpfuncs[] =
-	{
-		{(void*)&pSymFromAddr,				"SymFromAddr"},
-		{(void*)&pSymSetOptions,			"SymSetOptions"},
-		{(void*)&pSymInitialize,			"SymInitialize"},
-		{(void*)&pStackWalkX,				"StackWalk"DBGHELP_POSTFIX},
-		{(void*)&pSymFunctionTableAccessX,	"SymFunctionTableAccess"DBGHELP_POSTFIX},
-		{(void*)&pSymGetModuleBaseX,		"SymGetModuleBase"DBGHELP_POSTFIX},
-		{(void*)&pSymGetLineFromAddrX,		"SymGetLineFromAddr"DBGHELP_POSTFIX},
-		{(void*)&pSymGetModuleInfoX,		"SymGetModuleInfo"DBGHELP_POSTFIX},
-		{NULL, NULL}
-	};
+		{
+			{(void *)&pSymFromAddr, "SymFromAddr"},
+			{(void *)&pSymSetOptions, "SymSetOptions"},
+			{(void *)&pSymInitialize, "SymInitialize"},
+			{(void *)&pStackWalkX, "StackWalk" DBGHELP_POSTFIX},
+			{(void *)&pSymFunctionTableAccessX, "SymFunctionTableAccess" DBGHELP_POSTFIX},
+			{(void *)&pSymGetModuleBaseX, "SymGetModuleBase" DBGHELP_POSTFIX},
+			{(void *)&pSymGetLineFromAddrX, "SymGetLineFromAddr" DBGHELP_POSTFIX},
+			{(void *)&pSymGetModuleInfoX, "SymGetModuleInfo" DBGHELP_POSTFIX},
+			{NULL, NULL}};
 
-	switch(exceptionCode)
+	switch (exceptionCode)
 	{
 	case EXCEPTION_ACCESS_VIOLATION:
 	case EXCEPTION_DATATYPE_MISALIGNMENT:
@@ -456,17 +452,17 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 	case EXCEPTION_INVALID_DISPOSITION:
 	case EXCEPTION_GUARD_PAGE:
 	case EXCEPTION_INVALID_HANDLE:
-//	case EXCEPTION_POSSIBLE_DEADLOCK:
+		//	case EXCEPTION_POSSIBLE_DEADLOCK:
 		break;
 	case EXCEPTION_BREAKPOINT:
-		hKernel = LoadLibrary ("kernel32");
-		pIsDebuggerPresent = (void*)GetProcAddress(hKernel, "IsDebuggerPresent");
+		hKernel = LoadLibrary("kernel32");
+		pIsDebuggerPresent = (void *)GetProcAddress(hKernel, "IsDebuggerPresent");
 		if (pIsDebuggerPresent && pIsDebuggerPresent())
 			return EXCEPTION_CONTINUE_SEARCH;
 		break;
 		return EXCEPTION_CONTINUE_EXECUTION;
 	default:
-		//because windows is a steaming pile of shite, we have to ignore any software-generated exceptions, because most of them are not in fact fatal, *EVEN IF THEY CLAIM TO BE NON-CONTINUABLE*
+		// because windows is a steaming pile of shite, we have to ignore any software-generated exceptions, because most of them are not in fact fatal, *EVEN IF THEY CLAIM TO BE NON-CONTINUABLE*
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
@@ -475,23 +471,23 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 		DumpGLState();
 #endif
 
-	hKernel = LoadLibrary ("kernel32");
-	pIsDebuggerPresent = (void*)GetProcAddress(hKernel, "IsDebuggerPresent");
+	hKernel = LoadLibrary("kernel32");
+	pIsDebuggerPresent = (void *)GetProcAddress(hKernel, "IsDebuggerPresent");
 
 #ifdef GLQUAKE
-	//restores gamma
+	// restores gamma
 	GLVID_Crashed();
 #endif
 
-	if (!iswatchdog && pIsDebuggerPresent && pIsDebuggerPresent ())
+	if (!iswatchdog && pIsDebuggerPresent && pIsDebuggerPresent())
 	{
 		/*if we have a current window, minimize it to bring us out of fullscreen*/
-/*		extern qboolean vid_initializing;
-		qboolean oldval = vid_initializing;
-		vid_initializing = true;
-		ShowWindow(mainwindow, SW_MINIMIZE);
-		vid_initializing = oldval;
-*/
+		/*		extern qboolean vid_initializing;
+				qboolean oldval = vid_initializing;
+				vid_initializing = true;
+				ShowWindow(mainwindow, SW_MINIMIZE);
+				vid_initializing = oldval;
+		*/
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
@@ -519,14 +515,14 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 			int logpos, logstart;
 			char *logline;
 
-			stacklog[logpos=0] = 0;
+			stacklog[logpos = 0] = 0;
 
 			pSymInitialize(hProc, NULL, TRUE);
 			pSymSetOptions(SYMOPT_LOAD_LINES);
 
 			memset(&stack, 0, sizeof(stack));
 #ifdef _WIN64
-			#define IMAGE_FILE_MACHINE_THIS IMAGE_FILE_MACHINE_AMD64
+#define IMAGE_FILE_MACHINE_THIS IMAGE_FILE_MACHINE_AMD64
 			stack.AddrPC.Mode = AddrModeFlat;
 			stack.AddrPC.Offset = pcontext->Rip;
 			stack.AddrFrame.Mode = AddrModeFlat;
@@ -534,7 +530,7 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 			stack.AddrStack.Mode = AddrModeFlat;
 			stack.AddrStack.Offset = pcontext->Rsp;
 #else
-			#define IMAGE_FILE_MACHINE_THIS IMAGE_FILE_MACHINE_I386
+#define IMAGE_FILE_MACHINE_THIS IMAGE_FILE_MACHINE_I386
 			stack.AddrPC.Mode = AddrModeFlat;
 			stack.AddrPC.Offset = pcontext->Eip;
 			stack.AddrFrame.Mode = AddrModeFlat;
@@ -543,38 +539,39 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 			stack.AddrStack.Offset = pcontext->Esp;
 #endif
 
-			Q_strncpyz(stacklog+logpos, FULLENGINENAME " or dependancy has crashed. The following stack dump been copied to your windows clipboard.\n"
+			Q_strncpyz(stacklog + logpos, FULLENGINENAME " or dependancy has crashed. The following stack dump been copied to your windows clipboard.\n"
 #ifdef _MSC_VER
-				"Would you like to generate a core dump too?\n"
+														 "Would you like to generate a core dump too?\n"
 #endif
-				"\n", sizeof(stacklog)-logpos);
-			logstart = logpos += strlen(stacklog+logpos);
+														 "\n",
+					   sizeof(stacklog) - logpos);
+			logstart = logpos += strlen(stacklog + logpos);
 
-			//so I know which one it is
+			// so I know which one it is
 #if defined(DEBUG) || defined(_DEBUG)
-	#define BUILDDEBUGREL "Debug"
+#define BUILDDEBUGREL "Debug"
 #else
-	#define BUILDDEBUGREL "Optimised"
+#define BUILDDEBUGREL "Optimised"
 #endif
 #ifdef MINIMAL
-	#define BUILDMINIMAL "Min"
+#define BUILDMINIMAL "Min"
 #else
-	#define BUILDMINIMAL ""
+#define BUILDMINIMAL ""
 #endif
 #if defined(GLQUAKE) && !defined(D3DQUAKE) && !defined(VKQUAKE)
-	#define BUILDTYPE "GL"
+#define BUILDTYPE "GL"
 #elif !defined(GLQUAKE) && defined(D3DQUAKE) && !defined(VKQUAKE)
-	#define BUILDTYPE "D3D"
+#define BUILDTYPE "D3D"
 #elif !defined(GLQUAKE) && !defined(D3DQUAKE) && defined(VKQUAKE)
-	#define BUILDTYPE "VK"
+#define BUILDTYPE "VK"
 #else
-	#define BUILDTYPE "Merged"
+#define BUILDTYPE "Merged"
 #endif
 
-			Q_snprintfz(stacklog+logpos, sizeof(stacklog)-logpos, "Build: %s %s %s: %s\r\n", BUILDDEBUGREL, PLATFORM, BUILDMINIMAL BUILDTYPE, version_string());
-			logpos += strlen(stacklog+logpos);
+			Q_snprintfz(stacklog + logpos, sizeof(stacklog) - logpos, "Build: %s %s %s: %s\r\n", BUILDDEBUGREL, PLATFORM, BUILDMINIMAL BUILDTYPE, version_string());
+			logpos += strlen(stacklog + logpos);
 
-			for(frameno = 0; ; frameno++)
+			for (frameno = 0;; frameno++)
 			{
 				DWORD64 symdisp;
 				DWORD linedisp;
@@ -599,19 +596,19 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 						logline = va("%-20s+%#x (%s)\r\n", sym.sym.Name, (unsigned int)symdisp, module.LoadedImageName);
 				}
 				else
-					logline = va("0x%p (%s)\r\n", (void*)(DWORD_PTR)stack.AddrPC.Offset, module.LoadedImageName);
-				Q_strncpyz(stacklog+logpos, logline, sizeof(stacklog)-logpos);
-				logpos += strlen(stacklog+logpos);
-				if (logpos+1 >= sizeof(stacklog))
+					logline = va("0x%p (%s)\r\n", (void *)(DWORD_PTR)stack.AddrPC.Offset, module.LoadedImageName);
+				Q_strncpyz(stacklog + logpos, logline, sizeof(stacklog) - logpos);
+				logpos += strlen(stacklog + logpos);
+				if (logpos + 1 >= sizeof(stacklog))
 					break;
 			}
-			Sys_SaveClipboard(CBT_CLIPBOARD, stacklog+logstart);
+			Sys_SaveClipboard(CBT_CLIPBOARD, stacklog + logstart);
 #ifdef _MSC_VER
-			if (MessageBoxA(0, stacklog, "KABOOM!", MB_ICONSTOP|MB_YESNO) != IDYES)
+			if (MessageBoxA(0, stacklog, "KABOOM!", MB_ICONSTOP | MB_YESNO) != IDYES)
 			{
-				if (pIsDebuggerPresent && pIsDebuggerPresent ())
+				if (pIsDebuggerPresent && pIsDebuggerPresent())
 				{
-					//its possible someone attached a debugger while we were showing that message
+					// its possible someone attached a debugger while we were showing that message
 					return EXCEPTION_CONTINUE_SEARCH;
 				}
 				return EXCEPTION_EXECUTE_HANDLER;
@@ -628,7 +625,7 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 		}
 	}
 
-	//generate a minidump, but only if we were compiled by something that used usable debugging info. its a bit pointless otherwise.
+	// generate a minidump, but only if we were compiled by something that used usable debugging info. its a bit pointless otherwise.
 #ifdef _MSC_VER
 	{
 		char dumpPath[1024];
@@ -638,9 +635,9 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 		HMODULE hDbgHelp;
 		MINIDUMPWRITEDUMP fnMiniDumpWriteDump;
 
-		hDbgHelp = LoadLibraryA ("DBGHELP");
+		hDbgHelp = LoadLibraryA("DBGHELP");
 		if (hDbgHelp)
-			fnMiniDumpWriteDump = (MINIDUMPWRITEDUMP)GetProcAddress (hDbgHelp, "MiniDumpWriteDump");
+			fnMiniDumpWriteDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
 		else
 			fnMiniDumpWriteDump = NULL;
 
@@ -648,13 +645,13 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 		{
 			if (iswatchdog)
 			{
-				switch (MessageBoxA(NULL, "Fizzle... We hit an infinite loop! Or something is just really slow.\nBlame the monkey in the corner.\nI hope you saved your work.\nWould you like to take a dump now?\n(click cancel to wait a bit longer)", DISTRIBUTION " Sucks", MB_ICONSTOP|MB_YESNOCANCEL|MB_DEFBUTTON3))
+				switch (MessageBoxA(NULL, "Fizzle... We hit an infinite loop! Or something is just really slow.\nBlame the monkey in the corner.\nI hope you saved your work.\nWould you like to take a dump now?\n(click cancel to wait a bit longer)", DISTRIBUTION " Sucks", MB_ICONSTOP | MB_YESNOCANCEL | MB_DEFBUTTON3))
 				{
 				case IDYES:
-					break;	//take a dump.
+					break; // take a dump.
 				case IDNO:
 					exit(EXIT_FAILURE);
-				default:	//cancel = run the exception handler, which means we reset the watchdog.
+				default: // cancel = run the exception handler, which means we reset the watchdog.
 					return EXCEPTION_EXECUTE_HANDLER;
 				}
 			}
@@ -665,16 +662,16 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 			else if (*com_gamepath)
 				Q_strncpyz(dumpPath, com_gamepath, sizeof(dumpPath));
 			else
-				GetTempPathA (sizeof(dumpPath)-16, dumpPath);
-			Q_strncatz(dumpPath, DISTRIBUTION"CrashDump.dmp", sizeof(dumpPath));
-			dumpfile = CreateFileA (dumpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+				GetTempPathA(sizeof(dumpPath) - 16, dumpPath);
+			Q_strncatz(dumpPath, DISTRIBUTION "CrashDump.dmp", sizeof(dumpPath));
+			dumpfile = CreateFileA(dumpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (dumpfile)
 			{
 				MINIDUMP_EXCEPTION_INFORMATION crashinfo;
 				crashinfo.ClientPointers = TRUE;
 				crashinfo.ExceptionPointers = exceptionInfo;
-				crashinfo.ThreadId = GetCurrentThreadId ();
-				if (fnMiniDumpWriteDump(hProc, procid, dumpfile, MiniDumpWithIndirectlyReferencedMemory|MiniDumpWithDataSegs, &crashinfo, NULL, NULL))
+				crashinfo.ThreadId = GetCurrentThreadId();
+				if (fnMiniDumpWriteDump(hProc, procid, dumpfile, MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithDataSegs, &crashinfo, NULL, NULL))
 				{
 					CloseHandle(dumpfile);
 					Q_snprintfz(msg, sizeof(msg), "You can find the crashdump at:\n%s\nPlease send this file to someone.\n\nWarning: sensitive information (like your current user name) might be present in the dump.\nYou will probably want to compress it.", dumpPath);
@@ -696,18 +693,18 @@ DWORD CrashExceptionHandler (qboolean iswatchdog, DWORD exceptionCode, LPEXCEPTI
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-//most compilers do not support __try. perhaps we should avoid its use entirely?
+// most compilers do not support __try. perhaps we should avoid its use entirely?
 LONG CALLBACK nonmsvc_CrashExceptionHandler(PEXCEPTION_POINTERS ExceptionInfo)
 {
 	DWORD foo = EXCEPTION_CONTINUE_SEARCH;
 	foo = CrashExceptionHandler(false, ExceptionInfo->ExceptionRecord->ExceptionCode, ExceptionInfo);
-	//we have no handler. thus we handle it by exiting.
+	// we have no handler. thus we handle it by exiting.
 	if (foo == EXCEPTION_EXECUTE_HANDLER)
 		exit(EXIT_FAILURE);
 	return foo;
 }
 
-volatile int watchdogframe;	//incremented each frame.
+volatile int watchdogframe; // incremented each frame.
 void *watchdogthread;
 int watchdogthreadfunction(void *arg)
 {
@@ -715,8 +712,8 @@ int watchdogthreadfunction(void *arg)
 	int oldframe = watchdogframe;
 	int newframe;
 	int secs = 0;
-	while(1)
-	{ 
+	while (1)
+	{
 		newframe = watchdogframe;
 		if (oldframe != newframe)
 		{
@@ -731,7 +728,7 @@ int watchdogthreadfunction(void *arg)
 				secs = 0;
 				__try
 				{
-					*(int*)arg = -3;
+					*(int *)arg = -3;
 				}
 				__except (CrashExceptionHandler(true, GetExceptionCode(), GetExceptionInformation()))
 				{
@@ -748,91 +745,92 @@ int watchdogthreadfunction(void *arg)
 #ifndef SERVERONLY
 
 #if (_WIN32_WINNT < 0x0400)
-	#define LLKHF_ALTDOWN        0x00000020
-	#define LLKHF_UP             0x00000080
-	#define WH_KEYBOARD_LL     13
-	typedef struct {
-		DWORD vkCode;
-		DWORD scanCode;
-		DWORD flags;
-		DWORD time;
-		DWORD dwExtraInfo;
-	} KBDLLHOOKSTRUCT;
+#define LLKHF_ALTDOWN 0x00000020
+#define LLKHF_UP 0x00000080
+#define WH_KEYBOARD_LL 13
+typedef struct
+{
+	DWORD vkCode;
+	DWORD scanCode;
+	DWORD flags;
+	DWORD time;
+	DWORD dwExtraInfo;
+} KBDLLHOOKSTRUCT;
 #elif defined(MINGW)
-	#ifndef LLKHF_UP
-		#define LLKHF_UP             0x00000080
-	#endif
+#ifndef LLKHF_UP
+#define LLKHF_UP 0x00000080
+#endif
 #endif
 
 static struct
 {
 	HHOOK llkeyboardhook;
 
-	//windows hooks can be used for code injection etc.
-	//hide these symbols from shitty exports scanners so we don't look like the keylogger that we aren't. Note the 'vid.activeapp' requirement below - we are not a keylogger, we only see a limited set of keys and only when we already have focus.
-	HHOOK (WINAPI *pSetWindowsHookEx) (int idHook, HOOKPROC lpfn, HINSTANCE hmod, DWORD dwThreadId);	//W and A versions have the same signature.
-	LRESULT (WINAPI *pCallNextHookEx) (HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam);
-	BOOL (WINAPI *pUnhookWindowsHookEx) (HHOOK hhk);
+	// windows hooks can be used for code injection etc.
+	// hide these symbols from shitty exports scanners so we don't look like the keylogger that we aren't. Note the 'vid.activeapp' requirement below - we are not a keylogger, we only see a limited set of keys and only when we already have focus.
+	HHOOK(WINAPI *pSetWindowsHookEx)(int idHook, HOOKPROC lpfn, HINSTANCE hmod, DWORD dwThreadId); // W and A versions have the same signature.
+	LRESULT(WINAPI *pCallNextHookEx)(HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam);
+	BOOL(WINAPI *pUnhookWindowsHookEx)(HHOOK hhk);
 } winkeys;
 
-cvar_t	sys_disableWinKeys = CVAR("sys_disableWinKeys", "0");
-cvar_t	sys_disableTaskSwitch = CVARF("sys_disableTaskSwitch", "0", CVAR_NOTFROMSERVER);	// please don't encourage people to use this...
+cvar_t sys_disableWinKeys = CVAR("sys_disableWinKeys", "0");
+cvar_t sys_disableTaskSwitch = CVARF("sys_disableTaskSwitch", "0", CVAR_NOTFROMSERVER); // please don't encourage people to use this...
 
-LRESULT CALLBACK LowLevelKeyboardProc (INT nCode, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK LowLevelKeyboardProc(INT nCode, WPARAM wParam, LPARAM lParam)
 {
-	KBDLLHOOKSTRUCT *pkbhs = (KBDLLHOOKSTRUCT *) lParam;
+	KBDLLHOOKSTRUCT *pkbhs = (KBDLLHOOKSTRUCT *)lParam;
 	if (vid.activeapp)
-	switch (nCode)
-	{
-	case HC_ACTION:
+		switch (nCode)
 		{
-		//Trap the Left Windowskey
+		case HC_ACTION:
+		{
+			// Trap the Left Windowskey
 			if (pkbhs->vkCode == VK_SNAPSHOT)
 			{
-				IN_KeyEvent (0, !(pkbhs->flags & LLKHF_UP), K_PRINTSCREEN, 0);
+				IN_KeyEvent(0, !(pkbhs->flags & LLKHF_UP), K_PRINTSCREEN, 0);
 				return 1;
 			}
 			if (sys_disableWinKeys.ival)
 			{
 				if (pkbhs->vkCode == VK_LWIN)
 				{
-					IN_KeyEvent (0, !(pkbhs->flags & LLKHF_UP), K_LWIN, 0);
+					IN_KeyEvent(0, !(pkbhs->flags & LLKHF_UP), K_LWIN, 0);
 					return 1;
 				}
-			//Trap the Right Windowskey
+				// Trap the Right Windowskey
 				if (pkbhs->vkCode == VK_RWIN)
 				{
 					IN_KeyEvent(0, !(pkbhs->flags & LLKHF_UP), K_RWIN, 0);
 					return 1;
 				}
-			//Trap the Application Key (what a pointless key)
+				// Trap the Application Key (what a pointless key)
 				if (pkbhs->vkCode == VK_APPS)
 				{
-					IN_KeyEvent (0, !(pkbhs->flags & LLKHF_UP), K_APP, 0);
+					IN_KeyEvent(0, !(pkbhs->flags & LLKHF_UP), K_APP, 0);
 					return 1;
 				}
 			}
 
-		// Disable CTRL+ESC
-			//this works, but we've got to give some way to tab out...
+			// Disable CTRL+ESC
+			// this works, but we've got to give some way to tab out...
 			if (sys_disableTaskSwitch.ival)
 			{
-				if (pkbhs->vkCode == VK_ESCAPE && GetAsyncKeyState (VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1))
+				if (pkbhs->vkCode == VK_ESCAPE && GetAsyncKeyState(VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1))
 					return 1;
-		// Disable ATL+TAB
+				// Disable ATL+TAB
 				if (pkbhs->vkCode == VK_TAB && pkbhs->flags & LLKHF_ALTDOWN)
 					return 1;
-		// Disable ALT+ESC
+				// Disable ALT+ESC
 				if (pkbhs->vkCode == VK_ESCAPE && pkbhs->flags & LLKHF_ALTDOWN)
 					return 1;
 			}
 
 			break;
 		}
-	default:
-		break;
-	}
-	return winkeys.pCallNextHookEx (winkeys.llkeyboardhook, nCode, wParam, lParam);
+		default:
+			break;
+		}
+	return winkeys.pCallNextHookEx(winkeys.llkeyboardhook, nCode, wParam, lParam);
 }
 
 void SetHookState(qboolean state)
@@ -840,16 +838,16 @@ void SetHookState(qboolean state)
 	if (!sys_disableTaskSwitch.ival && !sys_disableWinKeys.ival)
 		state = false;
 
-	if (!state == !winkeys.llkeyboardhook)	//not so types are comparable
+	if (!state == !winkeys.llkeyboardhook) // not so types are comparable
 		return;
 	if (!winkeys.pSetWindowsHookEx)
 	{
 		HMODULE dll = LoadLibraryA("user32.dll");
 		if (!dll)
 			return;
-		winkeys.pSetWindowsHookEx		= (void*)GetProcAddress(dll, WinNT?"SetWindowsHookExW":"SetWindowsHookExA");
-		winkeys.pCallNextHookEx			= (void*)GetProcAddress(dll, "CallNextHookEx");
-		winkeys.pUnhookWindowsHookEx	= (void*)GetProcAddress(dll, "UnhookWindowsHookEx");
+		winkeys.pSetWindowsHookEx = (void *)GetProcAddress(dll, WinNT ? "SetWindowsHookExW" : "SetWindowsHookExA");
+		winkeys.pCallNextHookEx = (void *)GetProcAddress(dll, "CallNextHookEx");
+		winkeys.pUnhookWindowsHookEx = (void *)GetProcAddress(dll, "UnhookWindowsHookEx");
 		if (!winkeys.pSetWindowsHookEx)
 			return;
 	}
@@ -873,7 +871,7 @@ FILE IO
 ===============================================================================
 */
 
-void Sys_mkdir (const char *path)
+void Sys_mkdir(const char *path)
 {
 	if (WinNT)
 	{
@@ -882,10 +880,10 @@ void Sys_mkdir (const char *path)
 		CreateDirectoryW(wide, NULL);
 	}
 	else
-		_mkdir (path);
+		_mkdir(path);
 }
 
-qboolean Sys_rmdir (const char *path)
+qboolean Sys_rmdir(const char *path)
 {
 	if (WinNT)
 	{
@@ -894,11 +892,10 @@ qboolean Sys_rmdir (const char *path)
 		return RemoveDirectoryW(wide);
 	}
 	else
-		return 0==_mkdir (path);
+		return 0 == _mkdir(path);
 }
 
-
-qboolean Sys_remove (const char *path)
+qboolean Sys_remove(const char *path)
 {
 	if (WinNT)
 	{
@@ -906,28 +903,28 @@ qboolean Sys_remove (const char *path)
 		DWORD err;
 		widen(wide, sizeof(wide), path);
 		if (DeleteFileW(wide))
-			return true;	//success
+			return true; // success
 		err = GetLastError();
 		if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND)
-			return true;	//succeed when the file already didn't exist
+			return true; // succeed when the file already didn't exist
 		if (err == ERROR_ACCESS_DENIED)
-			return false;	//windows is shite. this may simply include that its open in another process that didn't include the SHARE_DELETE permission.
-		return false;		//other errors? panic
+			return false; // windows is shite. this may simply include that its open in another process that didn't include the SHARE_DELETE permission.
+		return false;	  // other errors? panic
 	}
 	else
 	{
-		if (remove (path) != 0)
+		if (remove(path) != 0)
 		{
 			int e = errno;
 			if (e == ENOENT)
-				return true;	//return success if it doesn't already exist.
+				return true; // return success if it doesn't already exist.
 			return false;
 		}
 		return true;
 	}
 }
 
-qboolean Sys_Rename (const char *oldfname, const char *newfname)
+qboolean Sys_Rename(const char *oldfname, const char *newfname)
 {
 	if (WinNT)
 	{
@@ -955,15 +952,15 @@ static time_t Sys_FileTimeToTime(FILETIME ft)
 	return ull.QuadPart / ULL(10000000) - ULL(11644473600);
 }
 
-static int Sys_EnumerateFiles_9x (const char *match, int matchstart, int neststart, int (QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
+static int Sys_EnumerateFiles_9x(const char *match, int matchstart, int neststart, int(QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
 {
 	qboolean go;
 	HANDLE r;
 	WIN32_FIND_DATAA fd;
-	int nest = neststart;	//neststart refers to just after a /
+	int nest = neststart; // neststart refers to just after a /
 	qboolean wild = false;
 
-	while(match[nest] && match[nest] != '/')
+	while (match[nest] && match[nest] != '/')
 	{
 		if (match[nest] == '?' || match[nest] == '*')
 			wild = true;
@@ -976,42 +973,43 @@ static int Sys_EnumerateFiles_9x (const char *match, int matchstart, int neststa
 		char file[MAX_OSPATH];
 
 		if (!wild)
-			return Sys_EnumerateFiles_9x(match, matchstart, nest+1, func, parm, spath);
+			return Sys_EnumerateFiles_9x(match, matchstart, nest + 1, func, parm, spath);
 
-		if (nest-neststart+1> MAX_OSPATH)
+		if (nest - neststart + 1 > MAX_OSPATH)
 			return 1;
-		memcpy(submatch, match+neststart, nest - neststart);
+		memcpy(submatch, match + neststart, nest - neststart);
 		submatch[nest - neststart] = 0;
 		nest++;
 
-		if (neststart+4 > MAX_OSPATH)
+		if (neststart + 4 > MAX_OSPATH)
 			return 1;
 		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
+		strcpy(tmproot + neststart, "*.*");
 
 		r = FindFirstFileA(tmproot, &fd);
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
+		strcpy(tmproot + neststart, "");
+		if (r == (HANDLE)-1)
 			return 1;
 		go = true;
 		do
 		{
-			if (*fd.cFileName == '.');	//don't ever find files with a name starting with '.'
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
+			if (*fd.cFileName == '.')
+				;													 // don't ever find files with a name starting with '.'
+			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) // is a directory
 			{
 				if (wildcmp(submatch, fd.cFileName))
 				{
 					int newnest;
-					if (strlen(tmproot) + strlen(fd.cFileName) + strlen(match+nest) + 2 < MAX_OSPATH)
+					if (strlen(tmproot) + strlen(fd.cFileName) + strlen(match + nest) + 2 < MAX_OSPATH)
 					{
 						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot, fd.cFileName);
 						newnest = strlen(file);
-						strcpy(file+newnest, match+nest);
+						strcpy(file + newnest, match + nest);
 						go = Sys_EnumerateFiles_9x(file, matchstart, newnest, func, parm, spath);
 					}
 				}
 			}
-		} while(FindNextFileA(r, &fd) && go);
+		} while (FindNextFileA(r, &fd) && go);
 		FindClose(r);
 	}
 	else
@@ -1020,27 +1018,27 @@ static int Sys_EnumerateFiles_9x (const char *match, int matchstart, int neststa
 		char tmproot[MAX_OSPATH];
 		char file[MAX_OSPATH];
 
-		if (neststart+4 > MAX_OSPATH)
+		if (neststart + 4 > MAX_OSPATH)
 			return 1;
 		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
+		strcpy(tmproot + neststart, "*.*");
 
 		r = FindFirstFileA(tmproot, &fd);
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
+		strcpy(tmproot + neststart, "");
+		if (r == (HANDLE)-1)
 			return 1;
 		go = true;
 		do
 		{
 			if (*fd.cFileName == '.')
-				;	//don't ever find files with a name starting with '.' (includes .. and . directories, and unix hidden files)
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
+				;													 // don't ever find files with a name starting with '.' (includes .. and . directories, and unix hidden files)
+			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) // is a directory
 			{
 				if (wildcmp(submatch, fd.cFileName))
 				{
-					if (strlen(tmproot+matchstart) + strlen(fd.cFileName) + 2 < MAX_OSPATH)
+					if (strlen(tmproot + matchstart) + strlen(fd.cFileName) + 2 < MAX_OSPATH)
 					{
-						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot+matchstart, fd.cFileName);
+						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot + matchstart, fd.cFileName);
 						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), Sys_FileTimeToTime(fd.ftLastWriteTime), parm, spath);
 					}
 				}
@@ -1049,32 +1047,32 @@ static int Sys_EnumerateFiles_9x (const char *match, int matchstart, int neststa
 			{
 				if (wildcmp(submatch, fd.cFileName))
 				{
-					if (strlen(tmproot+matchstart) + strlen(fd.cFileName) + 1 < MAX_OSPATH)
+					if (strlen(tmproot + matchstart) + strlen(fd.cFileName) + 1 < MAX_OSPATH)
 					{
-						Q_snprintfz(file, sizeof(file), "%s%s", tmproot+matchstart, fd.cFileName);
+						Q_snprintfz(file, sizeof(file), "%s%s", tmproot + matchstart, fd.cFileName);
 						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), Sys_FileTimeToTime(fd.ftLastWriteTime), parm, spath);
 					}
 				}
 			}
-		} while(FindNextFileA(r, &fd) && go);
+		} while (FindNextFileA(r, &fd) && go);
 		FindClose(r);
 	}
 	return go;
 }
-static int Sys_EnumerateFiles_NT (const char *match, int matchstart, int neststart, int (QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
+static int Sys_EnumerateFiles_NT(const char *match, int matchstart, int neststart, int(QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
 {
 	qboolean go;
 	HANDLE r;
 	WIN32_FIND_DATAW fd;
-	int nest = neststart;	//neststart refers to just after a /
+	int nest = neststart; // neststart refers to just after a /
 	qboolean wild = false;
 	char tmproot[MAX_OSPATH];
 	char utf8[MAX_OSPATH];
 	char file[MAX_OSPATH];
 
-	for(;;)
+	for (;;)
 	{
-		while(match[nest] && match[nest] != '/')
+		while (match[nest] && match[nest] != '/')
 		{
 			if (match[nest] == '?' || match[nest] == '*')
 				wild = true;
@@ -1083,7 +1081,7 @@ static int Sys_EnumerateFiles_NT (const char *match, int matchstart, int neststa
 
 		if (match[nest] == '/' && !wild)
 		{
-			nest = neststart = nest+1;
+			nest = neststart = nest + 1;
 			wild = false;
 		}
 		else
@@ -1093,44 +1091,45 @@ static int Sys_EnumerateFiles_NT (const char *match, int matchstart, int neststa
 	{
 		char submatch[MAX_OSPATH];
 
-		if (nest-neststart+1> MAX_OSPATH)
+		if (nest - neststart + 1 > MAX_OSPATH)
 			return 1;
-		memcpy(submatch, match+neststart, nest - neststart);
+		memcpy(submatch, match + neststart, nest - neststart);
 		submatch[nest - neststart] = 0;
 		nest++;
 
-		if (neststart+4 > MAX_OSPATH)
+		if (neststart + 4 > MAX_OSPATH)
 			return 1;
 		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
+		strcpy(tmproot + neststart, "*.*");
 
 		{
 			wchar_t wroot[MAX_OSPATH];
 			r = FindFirstFileW(widen(wroot, sizeof(wroot), tmproot), &fd);
 		}
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
+		strcpy(tmproot + neststart, "");
+		if (r == (HANDLE)-1)
 			return 1;
 		go = true;
 		do
 		{
 			narrowen(utf8, sizeof(utf8), fd.cFileName);
-			if (*utf8 == '.');	//don't ever find files with a name starting with '.'
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
+			if (*utf8 == '.')
+				;													 // don't ever find files with a name starting with '.'
+			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) // is a directory
 			{
 				if (wildcmp(submatch, utf8))
 				{
 					int newnest;
-					if (strlen(tmproot) + strlen(utf8) + strlen(match+nest) + 2 < MAX_OSPATH)
+					if (strlen(tmproot) + strlen(utf8) + strlen(match + nest) + 2 < MAX_OSPATH)
 					{
 						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot, utf8);
 						newnest = strlen(file);
-						strcpy(file+newnest, match+nest);
+						strcpy(file + newnest, match + nest);
 						go = Sys_EnumerateFiles_NT(file, matchstart, newnest, func, parm, spath);
 					}
 				}
 			}
-		} while(FindNextFileW(r, &fd) && go);
+		} while (FindNextFileW(r, &fd) && go);
 		FindClose(r);
 	}
 	else
@@ -1138,31 +1137,31 @@ static int Sys_EnumerateFiles_NT (const char *match, int matchstart, int neststa
 		const char *submatch = match + neststart;
 		char tmproot[MAX_OSPATH];
 
-		if (neststart+4 > MAX_OSPATH)
+		if (neststart + 4 > MAX_OSPATH)
 			return 1;
 		memcpy(tmproot, match, neststart);
-		strcpy(tmproot+neststart, "*.*");
+		strcpy(tmproot + neststart, "*.*");
 
 		{
 			wchar_t wroot[MAX_OSPATH];
 			r = FindFirstFileW(widen(wroot, sizeof(wroot), tmproot), &fd);
 		}
-		strcpy(tmproot+neststart, "");
-		if (r==(HANDLE)-1)
+		strcpy(tmproot + neststart, "");
+		if (r == (HANDLE)-1)
 			return 1;
 		go = true;
 		do
 		{
 			narrowen(utf8, sizeof(utf8), fd.cFileName);
 			if (*utf8 == '.')
-				;	//don't ever find files with a name starting with '.' (includes .. and . directories, and unix hidden files)
-			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)	//is a directory
+				;													 // don't ever find files with a name starting with '.' (includes .. and . directories, and unix hidden files)
+			else if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) // is a directory
 			{
 				if (wildcmp(submatch, utf8))
 				{
-					if (strlen(tmproot+matchstart) + strlen(utf8) + 2 < MAX_OSPATH)
+					if (strlen(tmproot + matchstart) + strlen(utf8) + 2 < MAX_OSPATH)
 					{
-						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot+matchstart, utf8);
+						Q_snprintfz(file, sizeof(file), "%s%s/", tmproot + matchstart, utf8);
 						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), Sys_FileTimeToTime(fd.ftLastWriteTime), parm, spath);
 					}
 				}
@@ -1171,19 +1170,19 @@ static int Sys_EnumerateFiles_NT (const char *match, int matchstart, int neststa
 			{
 				if (wildcmp(submatch, utf8))
 				{
-					if (strlen(tmproot+matchstart) + strlen(utf8) + 1 < MAX_OSPATH)
+					if (strlen(tmproot + matchstart) + strlen(utf8) + 1 < MAX_OSPATH)
 					{
-						Q_snprintfz(file, sizeof(file), "%s%s", tmproot+matchstart, utf8);
+						Q_snprintfz(file, sizeof(file), "%s%s", tmproot + matchstart, utf8);
 						go = func(file, qofs_Make(fd.nFileSizeLow, fd.nFileSizeHigh), Sys_FileTimeToTime(fd.ftLastWriteTime), parm, spath);
 					}
 				}
 			}
-		} while(FindNextFileW(r, &fd) && go);
+		} while (FindNextFileW(r, &fd) && go);
 		FindClose(r);
 	}
 	return go;
 }
-int Sys_EnumerateFiles (const char *gpath, const char *match, int (QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
+int Sys_EnumerateFiles(const char *gpath, const char *match, int(QDECL *func)(const char *fname, qofs_t fsize, time_t mtime, void *parm, searchpathfuncs_t *spath), void *parm, searchpathfuncs_t *spath)
 {
 	char fullmatch[MAX_OSPATH];
 	int start;
@@ -1194,7 +1193,7 @@ int Sys_EnumerateFiles (const char *gpath, const char *match, int (QDECL *func)(
 
 	strcpy(fullmatch, gpath);
 	start = strlen(fullmatch);
-	if (start && fullmatch[start-1] != '/')
+	if (start && fullmatch[start - 1] != '/')
 		fullmatch[start++] = '/';
 	fullmatch[start] = 0;
 	strcat(fullmatch, match);
@@ -1204,30 +1203,30 @@ int Sys_EnumerateFiles (const char *gpath, const char *match, int (QDECL *func)(
 		return Sys_EnumerateFiles_9x(fullmatch, start, start, func, parm, spath);
 }
 
-//wide only. we let the windows api sort out the mess of file urls. system-wide consistancy.
+// wide only. we let the windows api sort out the mess of file urls. system-wide consistancy.
 qboolean Sys_ResolveFileURL(const char *inurl, int inlen, char *out, int outlen)
 {
 	char *cp;
 	wchar_t wurl[MAX_PATH];
 	wchar_t local[MAX_PATH];
 	DWORD grr;
-	static HRESULT (WINAPI *pPathCreateFromUrlW)(PCWSTR pszUrl, PWSTR pszPath, DWORD *pcchPath, DWORD dwFlags);
+	static HRESULT(WINAPI * pPathCreateFromUrlW)(PCWSTR pszUrl, PWSTR pszPath, DWORD * pcchPath, DWORD dwFlags);
 	if (!pPathCreateFromUrlW)
 		pPathCreateFromUrlW = Sys_GetAddressForName(Sys_LoadLibrary("Shlwapi.dll", NULL), "PathCreateFromUrlW");
 	if (!pPathCreateFromUrlW)
 		return false;
 
-	//need to make a copy, because we can't terminate the inurl easily.
-	cp = malloc(inlen+1);
+	// need to make a copy, because we can't terminate the inurl easily.
+	cp = malloc(inlen + 1);
 	memcpy(cp, inurl, inlen);
 	cp[inlen] = 0;
 	widen(wurl, sizeof(wurl), cp);
 	free(cp);
-	grr = sizeof(local)/sizeof(wchar_t);
+	grr = sizeof(local) / sizeof(wchar_t);
 	if (FAILED(pPathCreateFromUrlW(wurl, local, &grr, 0)))
 		return false;
 	narrowen(out, outlen, local);
-	while(*out)
+	while (*out)
 	{
 		if (*out == '\\')
 			*out = '/';
@@ -1274,9 +1273,9 @@ void Sys_DoFileAssociations(int elevated, const char *scheme);
 void Sys_Register_File_Associations_f(void)
 {
 	if (!Q_strcasecmp(Cmd_Argv(1), "quiet"))
-		Sys_DoFileAssociations(2, fs_manifest->schemes);	//current user only.
+		Sys_DoFileAssociations(2, fs_manifest->schemes); // current user only.
 	else
-		Sys_DoFileAssociations(0, fs_manifest->schemes);	//user+machine(with elevation on failure)
+		Sys_DoFileAssociations(0, fs_manifest->schemes); // user+machine(with elevation on failure)
 }
 
 static void QDECL Sys_Priority_Changed(cvar_t *var, char *oldval)
@@ -1307,10 +1306,10 @@ static cvar_t sys_clockprecision = CVARFCD("sys_clockprecision", "1", CVAR_NOTFR
 Sys_Init
 ================
 */
-void Sys_Init (void)
+void Sys_Init(void)
 {
-//	LARGE_INTEGER	PerformanceFreq;
-//	unsigned int	lowpart, highpart;
+	//	LARGE_INTEGER	PerformanceFreq;
+	//	unsigned int	lowpart, highpart;
 
 	Sys_QueryDesktopParameters();
 
@@ -1327,7 +1326,7 @@ void Sys_Init (void)
 #ifndef CLIENTONLY
 	if (!isDedicated && !COM_CheckParm("-nomutex"))
 #else
-	if (!COM_CheckParm("-nomutex"))	//we need to create a mutex to allow gamespy to realise that we're running, but it might not be desired as it prevents other clients from running too.
+	if (!COM_CheckParm("-nomutex")) // we need to create a mutex to allow gamespy to realise that we're running, but it might not be desired as it prevents other clients from running too.
 #endif
 	{
 		// allocate a named semaphore on the client so the
@@ -1335,17 +1334,17 @@ void Sys_Init (void)
 
 		// mutex will fail if semephore already exists
 		qwclsemaphore = CreateMutex(
-			NULL,         // Security attributes
-			0,            // owner
+			NULL,	 // Security attributes
+			0,		 // owner
 			"qwcl"); // Semaphore name
-	//	if (!qwclsemaphore)
-	//		Sys_Error ("QWCL is already running on this system");
-		CloseHandle (qwclsemaphore);
+					 //	if (!qwclsemaphore)
+					 //		Sys_Error ("QWCL is already running on this system");
+		CloseHandle(qwclsemaphore);
 
 		qwclsemaphore = CreateSemaphore(
-			NULL,         // Security attributes
-			0,            // Initial count
-			1,            // Maximum count
+			NULL,	 // Security attributes
+			0,		 // Initial count
+			1,		 // Maximum count
 			"qwcl"); // Semaphore name
 	}
 #endif
@@ -1353,22 +1352,22 @@ void Sys_Init (void)
 
 	Sys_InitClock();
 
-#if _MSC_VER >= 1600 //msvc2010 runtime does not work on 9x any more. get rid of the deprecation warnings in later versions.
+#if _MSC_VER >= 1600 // msvc2010 runtime does not work on 9x any more. get rid of the deprecation warnings in later versions.
 	WinNT = true;
 
-	qwinvermaj = 6;	//Hack: assume 6.2 (aka win8). this will block 16bit colour depths.
+	qwinvermaj = 6; // Hack: assume 6.2 (aka win8). this will block 16bit colour depths.
 	qwinvermin = 2;
 #else
 	{
-		OSVERSIONINFO	vinfo;
+		OSVERSIONINFO vinfo;
 		vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-		if (!GetVersionEx (&vinfo))
-			Sys_Error ("Couldn't get OS info");
+		if (!GetVersionEx(&vinfo))
+			Sys_Error("Couldn't get OS info");
 
 		if ((vinfo.dwMajorVersion < 4) ||
 			(vinfo.dwPlatformId == VER_PLATFORM_WIN32s))
 		{
-			Sys_Error (FULLENGINENAME " requires at least Win95 or NT 4.0");
+			Sys_Error(FULLENGINENAME " requires at least Win95 or NT 4.0");
 		}
 
 		if (vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT)
@@ -1382,16 +1381,15 @@ void Sys_Init (void)
 #endif
 }
 
-
 void Sys_Shutdown(void)
 {
 	int i;
 	if (tevent)
-		CloseHandle (tevent);
+		CloseHandle(tevent);
 	tevent = NULL;
 
 	if (qwclsemaphore)
-		CloseHandle (qwclsemaphore);
+		CloseHandle(qwclsemaphore);
 	qwclsemaphore = NULL;
 
 	for (i = 0; i < MAX_NUM_ARGVS; i++)
@@ -1403,33 +1401,33 @@ void Sys_Shutdown(void)
 	}
 }
 
-void VARGS Sys_Error (const char *error, ...)
+void VARGS Sys_Error(const char *error, ...)
 {
-	va_list		argptr;
-	char		text[1024];
-//	DWORD		dummy;
+	va_list argptr;
+	char text[1024];
+	//	DWORD		dummy;
 
- 	va_start (argptr, error);
-	vsnprintf (text, sizeof(text), error, argptr);
-	va_end (argptr);
+	va_start(argptr, error);
+	vsnprintf(text, sizeof(text), error, argptr);
+	va_end(argptr);
 
 	COM_WorkerAbort(text);
 
 #ifndef SERVERONLY
 	SetHookState(false);
-	Host_Shutdown ();
+	Host_Shutdown();
 #else
 	SV_Shutdown();
 #endif
 
 	{
-		wchar_t		wtext[1024];
+		wchar_t wtext[1024];
 		widen(wtext, sizeof(wtext), text);
 		MessageBoxW(NULL, wtext, L"Error", 0);
 	}
 
 #ifndef SERVERONLY
-	CloseHandle (qwclsemaphore);
+	CloseHandle(qwclsemaphore);
 	SetHookState(false);
 #endif
 
@@ -1440,14 +1438,14 @@ void VARGS Sys_Error (const char *error, ...)
 		OutputDebugStringA("Leaks detected\n");
 #endif
 
-	exit (EXIT_FAILURE);
+	exit(EXIT_FAILURE);
 }
 
-void VARGS Sys_Printf (char *fmt, ...)
+void VARGS Sys_Printf(char *fmt, ...)
 {
-	va_list		argptr;
-	char		text[4096];
-	DWORD		dummy;
+	va_list argptr;
+	char text[4096];
+	DWORD dummy;
 
 	conchar_t msg[4096], *end, *in;
 	wchar_t wide[4096], *out;
@@ -1456,9 +1454,9 @@ void VARGS Sys_Printf (char *fmt, ...)
 	if (!houtput && !debugout && !SSV_IsSubServer())
 		return;
 
-	va_start (argptr,fmt);
-	vsnprintf (text, sizeof(text), fmt, argptr);
-	va_end (argptr);
+	va_start(argptr, fmt);
+	vsnprintf(text, sizeof(text), fmt, argptr);
+	va_end(argptr);
 
 #ifdef SUBSERVERS
 	if (SSV_IsSubServer())
@@ -1472,7 +1470,7 @@ void VARGS Sys_Printf (char *fmt, ...)
 	out = wide;
 	in = msg;
 	wlen = 0;
-	for (in = msg; in < end && wlen+3 < countof(wide); )
+	for (in = msg; in < end && wlen + 3 < countof(wide);)
 	{
 		unsigned int flags, cp;
 		in = Font_Decode(in, &flags, &cp);
@@ -1482,8 +1480,8 @@ void VARGS Sys_Printf (char *fmt, ...)
 			if (cp > 0xffff)
 			{
 				cp -= 0x10000;
-				*out++ = 0xD800 | (cp>>10);
-				*out++ = 0xDC00 | (cp&0x3ff);
+				*out++ = 0xD800 | (cp >> 10);
+				*out++ = 0xDC00 | (cp & 0x3ff);
 				wlen += 2;
 			}
 			else
@@ -1503,7 +1501,7 @@ void VARGS Sys_Printf (char *fmt, ...)
 			WriteConsoleW(houtput, wide, wlen, &dummy, NULL);
 		else
 		{
-			//win95 doesn't support wide chars *sigh*. blank consoles suck. this conversion might loose stuff if the multibytes are too long.
+			// win95 doesn't support wide chars *sigh*. blank consoles suck. this conversion might loose stuff if the multibytes are too long.
 			WriteConsole(houtput, text, WideCharToMultiByte(CP_ACP, 0, wide, wlen, text, sizeof(text), NULL, NULL), &dummy, NULL);
 		}
 	}
@@ -1520,16 +1518,15 @@ static void Sys_ClockPrecision_Changed(cvar_t *var, char *oldval)
 	{
 		sys_interrupt_freq = var->ival;
 		if (TIMERR_NOERROR != timeBeginPeriod(sys_interrupt_freq) && oldval)
-			Con_Printf(CON_ERROR"%s: timeBeginPeriod(%u) failed.\n", var->name, sys_interrupt_freq);
+			Con_Printf(CON_ERROR "%s: timeBeginPeriod(%u) failed.\n", var->name, sys_interrupt_freq);
 	}
 }
 
 static quint64_t timer_qpc_frequency;
 static unsigned int timer_tgt_period;
-static quint64_t timer_basetime;	//used by all clocks to bias them to starting at 0
+static quint64_t timer_basetime; // used by all clocks to bias them to starting at 0
 static DWORD_PTR timer_threadaffinity;
-static enum
-{
+static enum {
 	CLOCK_TGT = 1,
 	CLOCK_QPC = 2,
 	CLOCK_QPC_SINGLE = 3,
@@ -1542,17 +1539,17 @@ static quint64_t Sys_GetClock(quint64_t *freq)
 		LARGE_INTEGER pc;
 		QueryPerformanceCounter(&pc);
 		*freq = timer_qpc_frequency;
-		if (last.QuadPart <= pc.QuadPart)	//never let it go backwards. multiple cpus are bad. ignore it till it catches up.
+		if (last.QuadPart <= pc.QuadPart) // never let it go backwards. multiple cpus are bad. ignore it till it catches up.
 			last.QuadPart = pc.QuadPart;
 		return last.QuadPart - timer_basetime;
 	}
-	else //if (timer_clocktype == CLOCK_TGT)
+	else // if (timer_clocktype == CLOCK_TGT)
 	{
 		static DWORD last;
 		DWORD cur = timeGetTime();
 		if (last > cur)
 		{
-			timer_basetime -= (quint64_t)1 << 32;	//if it wrapped then try to compensate with the 64bit var that we do use so that Sys_DoubleTime won't suddenly go backwards
+			timer_basetime -= (quint64_t)1 << 32; // if it wrapped then try to compensate with the 64bit var that we do use so that Sys_DoubleTime won't suddenly go backwards
 			if (host_initialized)
 				Con_Printf("Clock wrapped\n");
 		}
@@ -1563,36 +1560,35 @@ static quint64_t Sys_GetClock(quint64_t *freq)
 }
 static void Sys_ClockType_Changed(cvar_t *var, char *oldval)
 {
-	int newtype = var?var->ival:0;
+	int newtype = var ? var->ival : 0;
 	if (newtype <= 0)
 		newtype = CLOCK_QPC;
 	if ((newtype == CLOCK_QPC || newtype == CLOCK_QPC_SINGLE) && !timer_qpc_frequency)
-		newtype = CLOCK_TGT;	//QueryPerformanceCounter can fail on older versions of windows.
+		newtype = CLOCK_TGT; // QueryPerformanceCounter can fail on older versions of windows.
 
 	if (newtype != timer_clocktype)
 	{
 		quint64_t oldtime, oldfreq;
 		quint64_t newtime, newfreq;
 
-
 		oldtime = Sys_GetClock(&oldfreq);
-		//kill old clock's evil global settings
+		// kill old clock's evil global settings
 		if (timer_clocktype == CLOCK_TGT)
 			timeEndPeriod(timer_tgt_period);
-		if (timer_clocktype == CLOCK_QPC_SINGLE)	//restore it.
+		if (timer_clocktype == CLOCK_QPC_SINGLE) // restore it.
 			SetThreadAffinityMask(GetCurrentThread(), timer_threadaffinity);
-		
-		//override necessary global state for new clock mode
-		if (newtype == CLOCK_QPC_SINGLE)			//lock it down to a single core
+
+		// override necessary global state for new clock mode
+		if (newtype == CLOCK_QPC_SINGLE) // lock it down to a single core
 		{
 			DWORD_PTR old = timer_threadaffinity, sys, m;
 			if (!old)
-			{	//try and get the default/existing value....
-				GetProcessAffinityMask(GetCurrentProcess(), &old, &sys);	//wtf? there is no thread call!
+			{															 // try and get the default/existing value....
+				GetProcessAffinityMask(GetCurrentProcess(), &old, &sys); // wtf? there is no thread call!
 				old &= sys;
 			}
-			for (m = 1; old > m; m<<=1)
-				;	//scan to find the LAST cpu. First cpu often has overheads like interrupt handling, second is weird and unreliable (and often hyperthreads with the first).
+			for (m = 1; old > m; m <<= 1)
+				; // scan to find the LAST cpu. First cpu often has overheads like interrupt handling, second is weird and unreliable (and often hyperthreads with the first).
 			old = SetThreadAffinityMask(GetCurrentThread(), old);
 			if (!timer_threadaffinity)
 				timer_threadaffinity = old;
@@ -1601,15 +1597,15 @@ static void Sys_ClockType_Changed(cvar_t *var, char *oldval)
 		{
 			timeBeginPeriod(timer_tgt_period);
 			if (host_initialized && timer_tgt_period > 1)
-				Con_Printf(CON_WARNING"System timer is limited to only %ums precision\n", timer_tgt_period);
+				Con_Printf(CON_WARNING "System timer is limited to only %ums precision\n", timer_tgt_period);
 		}
 
-		//switch over internal state
+		// switch over internal state
 		timer_clocktype = newtype;
 		timer_basetime = 0;
 		newtime = Sys_GetClock(&newfreq);
 
-		//and fix the bias to avoid crazy stalls due to offsets/frequencies changing.
+		// and fix the bias to avoid crazy stalls due to offsets/frequencies changing.
 		timer_basetime = newtime - (newfreq * (oldtime) / oldfreq);
 	}
 }
@@ -1619,35 +1615,35 @@ static void Sys_InitClock(void)
 	TIMECAPS tc;
 	LARGE_INTEGER t;
 
-	//QPC timer
+	// QPC timer
 	if (QueryPerformanceFrequency(&t))
 		timer_qpc_frequency = t.QuadPart;
 	else
 		timer_qpc_frequency = 0;
 
-	//TGT timer
+	// TGT timer
 	timeGetDevCaps(&tc, sizeof(tc));
-	timer_tgt_period = max(1,tc.wPeriodMin);	//make sure its at least 1, because 0 is probably a bug...
+	timer_tgt_period = max(1, tc.wPeriodMin); // make sure its at least 1, because 0 is probably a bug...
 
-	//calibrate it, and apply.
+	// calibrate it, and apply.
 	timer_basetime = Sys_GetClock(&freq);
 	Sys_ClockType_Changed(&sys_clocktype, NULL);
 
 	Sys_ClockPrecision_Changed(&sys_clocktype, NULL);
 }
-double Sys_DoubleTime (void)
+double Sys_DoubleTime(void)
 {
 	quint64_t denum, num = Sys_GetClock(&denum);
 	return num / (long double)denum;
 }
-unsigned int Sys_Milliseconds (void)
+unsigned int Sys_Milliseconds(void)
 {
 	quint64_t denum, num = Sys_GetClock(&denum);
 	num *= 1000;
 	return num / denum;
 }
 
-void Sys_Quit (void)
+void Sys_Quit(void)
 {
 	Sys_ClockType_Changed(NULL, NULL);
 	Sys_ClockPrecision_Changed(NULL, NULL);
@@ -1655,7 +1651,7 @@ void Sys_Quit (void)
 #ifndef SERVERONLY
 	SetHookState(false);
 
-	Host_Shutdown ();
+	Host_Shutdown();
 
 	SetHookState(false);
 #else
@@ -1675,7 +1671,6 @@ void Sys_Quit (void)
 
 	exit(EXIT_SUCCESS);
 }
-
 
 #if 0
 /*
@@ -1711,16 +1706,17 @@ unsigned int Sys_Milliseconds (void)
 	return Sys_DoubleTime()*1000;
 }
 #elif 0
-unsigned int Sys_Milliseconds (void)
+unsigned int Sys_Milliseconds(void)
 {
 	static DWORD starttime;
 	static qboolean first = true;
 	DWORD now;
-//	double t;
+	//	double t;
 
 	now = timeGetTime();
 
-	if (first) {
+	if (first)
+	{
 		first = false;
 		starttime = now;
 		return 0.0;
@@ -1740,24 +1736,22 @@ unsigned int Sys_Milliseconds (void)
 	return (now - starttime);
 }
 
-double Sys_DoubleTime (void)
+double Sys_DoubleTime(void)
 {
-	return Sys_Milliseconds()/1000.f;
+	return Sys_Milliseconds() / 1000.f;
 }
 #endif
 
-
-
 /////////////////////////////////////////////////////////////
-//clipboard
+// clipboard
 void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, const char *utf8), void *ctx)
 {
-	HANDLE	clipboardhandle;
+	HANDLE clipboardhandle;
 	char *cliputf8;
 	if (OpenClipboard(NULL))
 	{
-		//windows programs interpret CF_TEXT as ansi (aka: gibberish)
-		//so grab utf-16 text and convert it to utf-8 if our console parsing is set to accept that.
+		// windows programs interpret CF_TEXT as ansi (aka: gibberish)
+		// so grab utf-16 text and convert it to utf-8 if our console parsing is set to accept that.
 		clipboardhandle = GetClipboardData(CF_UNICODETEXT);
 		if (clipboardhandle)
 		{
@@ -1768,18 +1762,18 @@ void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, con
 				char *utf8;
 				for (l = 0; clipWText[l]; l++)
 					;
-				l = l*4 + 1;
+				l = l * 4 + 1;
 				utf8 = cliputf8 = malloc(l);
-				while(*clipWText)
+				while (*clipWText)
 				{
 					unsigned int cp = *clipWText++;
-					if (cp == '\r' && *clipWText == '\n')	//bloomin microsoft.
+					if (cp == '\r' && *clipWText == '\n') // bloomin microsoft.
 						cp = *clipWText++;
 					if (cp >= 0xD800u && cp <= 0xDBFFu)
-					{	//handle utf-16 surrogates
+					{ // handle utf-16 surrogates
 						if (*clipWText >= 0xDC00u && *clipWText <= 0xDFFFu)
 						{
-							cp = (cp&0x3ff)<<10;
+							cp = (cp & 0x3ff) << 10;
 							cp |= *clipWText++ & 0x3ff;
 							cp += 0x10000;
 						}
@@ -1801,7 +1795,7 @@ void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, con
 				return;
 			}
 
-			//failed at the last hurdle
+			// failed at the last hurdle
 
 			GlobalUnlock(clipboardhandle);
 		}
@@ -1816,11 +1810,11 @@ void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, con
 				char *utf8;
 				for (l = 0; clipText[l]; l++)
 					;
-				l = l*4 + 1;
+				l = l * 4 + 1;
 				utf8 = cliputf8 = malloc(l);
-				while(*clipText)
+				while (*clipText)
 				{
-					if (clipText[0] == '\r' && clipText[1] == '\n')	//bloomin microsoft.
+					if (clipText[0] == '\r' && clipText[1] == '\n') // bloomin microsoft.
 						clipText++;
 					c = utf8_encode(utf8, *clipText++, l);
 					if (!c)
@@ -1833,7 +1827,7 @@ void Sys_Clipboard_PasteText(clipboardtype_t cbt, void (*callback)(void *cb, con
 				free(cliputf8);
 			}
 
-			//failed at the last hurdle
+			// failed at the last hurdle
 
 			GlobalUnlock(clipboardhandle);
 		}
@@ -1852,26 +1846,26 @@ void Sys_SaveClipboard(clipboardtype_t cbt, const char *text)
 
 	if (WinNT)
 	{
-		glob = GlobalAlloc(GMEM_MOVEABLE, (strlen(text) + 1)*4);
+		glob = GlobalAlloc(GMEM_MOVEABLE, (strlen(text) + 1) * 4);
 		if (glob)
 		{
 			tempw = GlobalLock(glob);
 			if (tempw != NULL)
 			{
 				int error;
-				while(*text)
+				while (*text)
 				{
 					codepoint = unicode_decode(&error, text, &text, false);
 					if (codepoint == '\n')
-					{	//windows is stupid and annoying.
+					{ // windows is stupid and annoying.
 						*tempw++ = '\r';
 						*tempw++ = '\n';
 					}
 					else if (codepoint > 0xffff)
-					{	//and badly designed, too.
+					{ // and badly designed, too.
 						codepoint -= 0x10000;
-						*tempw++ = 0xD800 | ((codepoint>>10)&0x3ff);
-						*tempw++ = 0xDC00 | (codepoint&0x3ff);
+						*tempw++ = 0xD800 | ((codepoint >> 10) & 0x3ff);
+						*tempw++ = 0xDC00 | (codepoint & 0x3ff);
 					}
 					else
 						*tempw++ = codepoint;
@@ -1886,10 +1880,10 @@ void Sys_SaveClipboard(clipboardtype_t cbt, const char *text)
 	}
 	else
 	{
-		glob = GlobalAlloc(GMEM_MOVEABLE, strlen(text)*2 + 1);
+		glob = GlobalAlloc(GMEM_MOVEABLE, strlen(text) * 2 + 1);
 		if (glob)
 		{
-			//yes, quake chars will get mangled horribly.
+			// yes, quake chars will get mangled horribly.
 			temp = GlobalLock(glob);
 			if (temp != NULL)
 			{
@@ -1914,40 +1908,35 @@ void Sys_SaveClipboard(clipboardtype_t cbt, const char *text)
 	CloseClipboard();
 }
 
-
-//end of clipboard
+// end of clipboard
 /////////////////////////////////////////////////////////////
 
-
-
-
 /////////////////////////////////////////
-//the system console stuff
+// the system console stuff
 
-char *Sys_ConsoleInput (void)
+char *Sys_ConsoleInput(void)
 {
-	static char	text[256];
-	static int		len;
-	INPUT_RECORD	recs[1024];
-//	int		count;
-	int		ch;
-	DWORD numevents, numread, dummy=0;
-	HANDLE	th;
-	char	*clipText, *textCopied;
+	static char text[256];
+	static int len;
+	INPUT_RECORD recs[1024];
+	//	int		count;
+	int ch;
+	DWORD numevents, numread, dummy = 0;
+	HANDLE th;
+	char *clipText, *textCopied;
 
 #ifdef SUBSERVERS
 	if (SSV_IsSubServer())
 		return NULL;
 #endif
 
-
 	if (!hinput)
 		return NULL;
 
-	for ( ;; )
+	for (;;)
 	{
-		if (!GetNumberOfConsoleInputEvents (hinput, &numevents))
-			Sys_Error ("Error getting # of console events");
+		if (!GetNumberOfConsoleInputEvents(hinput, &numevents))
+			Sys_Error("Error getting # of console events");
 
 		if (numevents <= 0)
 			break;
@@ -1955,16 +1944,16 @@ char *Sys_ConsoleInput (void)
 		if (WinNT)
 		{
 			if (!ReadConsoleInputW(hinput, recs, 1, &numread))
-				Sys_Error ("Error reading console input");
+				Sys_Error("Error reading console input");
 		}
 		else
 		{
 			if (!ReadConsoleInputA(hinput, recs, 1, &numread))
-				Sys_Error ("Error reading console input");
+				Sys_Error("Error reading console input");
 		}
 
 		if (numread != 1)
-			Sys_Error ("Couldn't read console input");
+			Sys_Error("Couldn't read console input");
 
 		if (recs[0].EventType == KEY_EVENT)
 		{
@@ -1974,70 +1963,74 @@ char *Sys_ConsoleInput (void)
 
 				switch (ch)
 				{
-					case '\r':
-						WriteFile(houtput, "\r\n", 2, &dummy, NULL);
+				case '\r':
+					WriteFile(houtput, "\r\n", 2, &dummy, NULL);
 
-						if (len)
-						{
-							text[len] = 0;
-							len = 0;
-							return text;
-						}
-						break;
+					if (len)
+					{
+						text[len] = 0;
+						len = 0;
+						return text;
+					}
+					break;
 
-					case '\b':
-						if (len)
-						{
-							len--;
-							WriteFile(houtput, "\b \b", 3, &dummy, NULL);
-						}
-						break;
+				case '\b':
+					if (len)
+					{
+						len--;
+						WriteFile(houtput, "\b \b", 3, &dummy, NULL);
+					}
+					break;
 
-					default:
-						if (((ch=='V' || ch=='v') && (recs[0].Event.KeyEvent.dwControlKeyState &
-							(LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))) || ((recs[0].Event.KeyEvent.dwControlKeyState
-							& SHIFT_PRESSED) && (recs[0].Event.KeyEvent.wVirtualKeyCode
-							==VK_INSERT))) {
-							if (OpenClipboard(NULL)) {
-								th = GetClipboardData(CF_TEXT);
-								if (th) {
-									clipText = GlobalLock(th);
-									if (clipText) {
-										int i;
-										textCopied = BZ_Malloc(GlobalSize(th)+1);
-										strcpy(textCopied, clipText);
-/* Substitutes a NULL for every token */strtok(textCopied, "\n\r\b");
-										i = strlen(textCopied);
-										if (i+len>=256)
-											i=256-len;
-										if (i>0) {
-											textCopied[i]=0;
-											text[len]=0;
-											strcat(text, textCopied);
-											len+=dummy;
-											WriteFile(houtput, textCopied, i, &dummy, NULL);
-										}
-										BZ_Free(textCopied);
-									}
-									GlobalUnlock(th);
-								}
-								CloseClipboard();
-							}
-						} else if (ch >= ' ')
+				default:
+					if (((ch == 'V' || ch == 'v') && (recs[0].Event.KeyEvent.dwControlKeyState &
+													  (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))) ||
+						((recs[0].Event.KeyEvent.dwControlKeyState & SHIFT_PRESSED) && (recs[0].Event.KeyEvent.wVirtualKeyCode == VK_INSERT)))
+					{
+						if (OpenClipboard(NULL))
 						{
-							wchar_t wch = ch;
-							if (WinNT)
-								WriteConsoleW(houtput, &wch, 1, &dummy, NULL);
-							else
+							th = GetClipboardData(CF_TEXT);
+							if (th)
 							{
-								char mb[8];	//hopefully ucs-2-only will be sufficient...
-								WriteConsoleA(houtput, mb, WideCharToMultiByte(CP_ACP, 0, &wch, 1, mb, sizeof(mb), NULL, NULL), &dummy, NULL);
+								clipText = GlobalLock(th);
+								if (clipText)
+								{
+									int i;
+									textCopied = BZ_Malloc(GlobalSize(th) + 1);
+									strcpy(textCopied, clipText);
+									/* Substitutes a NULL for every token */ strtok(textCopied, "\n\r\b");
+									i = strlen(textCopied);
+									if (i + len >= 256)
+										i = 256 - len;
+									if (i > 0)
+									{
+										textCopied[i] = 0;
+										text[len] = 0;
+										strcat(text, textCopied);
+										len += dummy;
+										WriteFile(houtput, textCopied, i, &dummy, NULL);
+									}
+									BZ_Free(textCopied);
+								}
+								GlobalUnlock(th);
 							}
-							len += utf8_encode(text+len, ch, sizeof(text)-1-len);
+							CloseClipboard();
 						}
+					}
+					else if (ch >= ' ')
+					{
+						wchar_t wch = ch;
+						if (WinNT)
+							WriteConsoleW(houtput, &wch, 1, &dummy, NULL);
+						else
+						{
+							char mb[8]; // hopefully ucs-2-only will be sufficient...
+							WriteConsoleA(houtput, mb, WideCharToMultiByte(CP_ACP, 0, &wch, 1, mb, sizeof(mb), NULL, NULL), &dummy, NULL);
+						}
+						len += utf8_encode(text + len, ch, sizeof(text) - 1 - len);
+					}
 
-						break;
-
+					break;
 				}
 			}
 		}
@@ -2046,31 +2039,31 @@ char *Sys_ConsoleInput (void)
 	return NULL;
 }
 
-BOOL WINAPI HandlerRoutine (DWORD dwCtrlType)
+BOOL WINAPI HandlerRoutine(DWORD dwCtrlType)
 {
 	switch (dwCtrlType)
 	{
-		case CTRL_C_EVENT:
-		case CTRL_BREAK_EVENT:
-		case CTRL_CLOSE_EVENT:
-		case CTRL_LOGOFF_EVENT:
-		case CTRL_SHUTDOWN_EVENT:
-			Cbuf_AddText ("quit\n", RESTRICT_LOCAL);
-			return true;
+	case CTRL_C_EVENT:
+	case CTRL_BREAK_EVENT:
+	case CTRL_CLOSE_EVENT:
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
+		Cbuf_AddText("quit\n", RESTRICT_LOCAL);
+		return true;
 	}
 
 	return false;
 }
 
 #ifndef CP_UTF8
-#define CP_UTF8                   65001
+#define CP_UTF8 65001
 #endif
-qboolean Sys_InitTerminal (void)
+qboolean Sys_InitTerminal(void)
 {
 	DWORD m;
 
 	if (SSV_IsSubServer())
-		return true;	//just pretend we did
+		return true; // just pretend we did
 
 	if (!AllocConsole())
 		return false;
@@ -2083,19 +2076,19 @@ qboolean Sys_InitTerminal (void)
 	}
 #endif
 
-	SetConsoleCtrlHandler (HandlerRoutine, TRUE);
+	SetConsoleCtrlHandler(HandlerRoutine, TRUE);
 	SetConsoleCP(CP_UTF8);
 	SetConsoleOutputCP(CP_UTF8);
-	SetConsoleTitleW (_L(FULLENGINENAME) L" dedicated server");
+	SetConsoleTitleW(_L(FULLENGINENAME) L" dedicated server");
 	if (isPlugin)
 	{
-		hinput = CreateFileA("CONIN$",GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,0,OPEN_EXISTING,0,0);
-		houtput = CreateFileA("CONOUT$",GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,0,OPEN_EXISTING,0,0);
+		hinput = CreateFileA("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+		houtput = CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
 	}
 	else
 	{
-		hinput = GetStdHandle (STD_INPUT_HANDLE);
-		houtput = GetStdHandle (STD_OUTPUT_HANDLE);
+		hinput = GetStdHandle(STD_INPUT_HANDLE);
+		houtput = GetStdHandle(STD_OUTPUT_HANDLE);
 	}
 
 	if (hinput)
@@ -2106,7 +2099,7 @@ qboolean Sys_InitTerminal (void)
 
 	return true;
 }
-void Sys_CloseTerminal (void)
+void Sys_CloseTerminal(void)
 {
 	FreeConsole();
 
@@ -2114,19 +2107,18 @@ void Sys_CloseTerminal (void)
 	houtput = NULL;
 }
 
-
 //
 ////////////////////////////
 
 qboolean QCExternalDebuggerCommand(char *text);
-void Sys_SendKeyEvents (void)
+void Sys_SendKeyEvents(void)
 {
-    MSG        msg;
+	MSG msg;
 
 	if (isPlugin)
 	{
 		DWORD avail;
-		static char	text[256], *nl;
+		static char text[256], *nl;
 		static int textpos = 0;
 
 		HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
@@ -2137,12 +2129,12 @@ void Sys_SendKeyEvents (void)
 		}
 		else if (avail)
 		{
-			if (avail > sizeof(text)-1-textpos)
-				avail = sizeof(text)-1-textpos;
-			if (ReadFile(input, text+textpos, avail, &avail, NULL))
+			if (avail > sizeof(text) - 1 - textpos)
+				avail = sizeof(text) - 1 - textpos;
+			if (ReadFile(input, text + textpos, avail, &avail, NULL))
 			{
 				textpos += avail;
-				if (textpos > sizeof(text)-1)
+				if (textpos > sizeof(text) - 1)
 					Sys_Error("No.");
 			}
 		}
@@ -2159,7 +2151,7 @@ void Sys_SendKeyEvents (void)
 					sys_parentleft = strtoul(Cmd_Argv(1), NULL, 0);
 					sys_parenttop = strtoul(Cmd_Argv(2), NULL, 0);
 					sys_parentwidth = strtoul(Cmd_Argv(3), NULL, 0);
-					sys_parentheight = strtoul(Cmd_Argv(4), NULL, 0); 
+					sys_parentheight = strtoul(Cmd_Argv(4), NULL, 0);
 					sys_parentwindow = (HWND)(qintptr_t)strtoull(Cmd_Argv(5), NULL, 16);
 				}
 #if !defined(CLIENTONLY) || defined(CSQC_DAT) || defined(MENU_DAT)
@@ -2181,7 +2173,7 @@ void Sys_SendKeyEvents (void)
 	if (isDedicated)
 	{
 #ifndef CLIENTONLY
-		SV_GetConsoleCommands ();
+		SV_GetConsoleCommands();
 #endif
 		return;
 	}
@@ -2196,18 +2188,17 @@ void Sys_SendKeyEvents (void)
 		}
 	}
 
-	while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
-	// we always update if there are any event, even if we're paused
-		//if (!GetMessage (&msg, NULL, 0, 0))
+		// we always update if there are any event, even if we're paused
+		// if (!GetMessage (&msg, NULL, 0, 0))
 		//	break;
-//			Sys_Quit ();
-//		if (TranslateMessage (&msg))
-//			continue;
-      	DispatchMessage (&msg);
+		//			Sys_Quit ();
+		//		if (TranslateMessage (&msg))
+		//			continue;
+		DispatchMessage(&msg);
 	}
 }
-
 
 void Sys_ServerActivity(void)
 {
@@ -2230,18 +2221,11 @@ void Sys_ServerActivity(void)
 WinMain
 ==================
 */
-void SleepUntilInput (int time)
+void SleepUntilInput(int time)
 {
 
 	MsgWaitForMultipleObjects(1, &tevent, FALSE, time, QS_ALLINPUT);
 }
-
-
-
-
-
-
-
 
 qboolean Sys_Startup_CheckMem(quakeparms_t *parms)
 {
@@ -2253,11 +2237,11 @@ qboolean Sys_Startup_CheckMem(quakeparms_t *parms)
 WinMain
 ==================
 */
-HINSTANCE	global_hInstance;
-int			global_nCmdShow;
-HWND		hwnd_dialog;
+HINSTANCE global_hInstance;
+int global_nCmdShow;
+HWND hwnd_dialog;
 
-static const IID qIID_IShellLinkW	= {0x000214F9L, 0, 0, {0xc0,0,0,0,0,0,0,0x46}};
+static const IID qIID_IShellLinkW = {0x000214F9L, 0, 0, {0xc0, 0, 0, 0, 0, 0, 0, 0x46}};
 
 #include <shlobj.h>
 #if defined(_MSC_VER) && _MSC_VER <= 1200
@@ -2270,165 +2254,167 @@ void Win7_Init(void)
 }
 #else
 
-typedef struct qSHARDAPPIDINFOLINK {
-  IShellLinkW *psl;
-  PCWSTR     pszAppID;
+typedef struct qSHARDAPPIDINFOLINK
+{
+	IShellLinkW *psl;
+	PCWSTR pszAppID;
 } qSHARDAPPIDINFOLINK;
 
 #define qSHARD_APPIDINFOLINK 0x00000007
 
-typedef struct {
-  GUID  fmtid;
-  DWORD pid;
+typedef struct
+{
+	GUID fmtid;
+	DWORD pid;
 } qPROPERTYKEY;
 
 typedef struct qIPropertyStore qIPropertyStore;
 struct qIPropertyStore
 {
-    CONST_VTBL struct
+	CONST_VTBL struct
 	{
 		/*IUnknown*/
-		HRESULT ( STDMETHODCALLTYPE *QueryInterface )(
-				qIPropertyStore * This,
-				REFIID riid,
-				void **ppvObject);
-		ULONG ( STDMETHODCALLTYPE *AddRef )(
-				qIPropertyStore * This);
-		ULONG ( STDMETHODCALLTYPE *Release )(
-				qIPropertyStore * This);
+		HRESULT(STDMETHODCALLTYPE *QueryInterface)(
+			qIPropertyStore *This,
+			REFIID riid,
+			void **ppvObject);
+		ULONG(STDMETHODCALLTYPE *AddRef)(
+			qIPropertyStore *This);
+		ULONG(STDMETHODCALLTYPE *Release)(
+			qIPropertyStore *This);
 
 		/*property store stuff*/
-		HRESULT ( STDMETHODCALLTYPE *GetCount)(
-				qIPropertyStore * This,
-				ULONG *count);
+		HRESULT(STDMETHODCALLTYPE *GetCount)(
+			qIPropertyStore *This,
+			ULONG *count);
 
-		HRESULT  ( STDMETHODCALLTYPE *GetAt)(
-				qIPropertyStore * This,
-				DWORD prop,
-				qPROPERTYKEY * key);
+		HRESULT(STDMETHODCALLTYPE *GetAt)(
+			qIPropertyStore *This,
+			DWORD prop,
+			qPROPERTYKEY *key);
 
-		HRESULT  ( STDMETHODCALLTYPE *GetValue)(
-				qIPropertyStore * This,
-				qPROPERTYKEY * key,
-				PROPVARIANT * val);
+		HRESULT(STDMETHODCALLTYPE *GetValue)(
+			qIPropertyStore *This,
+			qPROPERTYKEY *key,
+			PROPVARIANT *val);
 
-		HRESULT  ( STDMETHODCALLTYPE *SetValue)(
-				qIPropertyStore * This,
-				qPROPERTYKEY * key,
-				PROPVARIANT * val);
+		HRESULT(STDMETHODCALLTYPE *SetValue)(
+			qIPropertyStore *This,
+			qPROPERTYKEY *key,
+			PROPVARIANT *val);
 
-		HRESULT  ( STDMETHODCALLTYPE *Commit)(
-				qIPropertyStore * This);
+		HRESULT(STDMETHODCALLTYPE *Commit)(
+			qIPropertyStore *This);
 	} *lpVtbl;
 };
 
 static const IID qIID_IPropertyStore = {0x886d8eeb, 0x8cf2, 0x4446, {0x8d, 0x02, 0xcd, 0xba, 0x1d, 0xbd, 0xcf, 0x99}};
 
-#define qIObjectArray IUnknown 
-static const IID qIID_IObjectArray = {0x92ca9dcd, 0x5622, 0x4bba, {0xa8,0x05,0x5e,0x9f,0x54,0x1b,0xd8,0xc9}};
+#define qIObjectArray IUnknown
+static const IID qIID_IObjectArray = {0x92ca9dcd, 0x5622, 0x4bba, {0xa8, 0x05, 0x5e, 0x9f, 0x54, 0x1b, 0xd8, 0xc9}};
 
 typedef struct qIObjectCollection
 {
-    struct qIObjectCollectionVtbl
+	struct qIObjectCollectionVtbl
 	{
-		HRESULT ( __stdcall *QueryInterface )(
+		HRESULT(__stdcall *QueryInterface)(
 			/* [in] IShellLink*/ void *This,
-			/* [in] */ const GUID * const riid,
+			/* [in] */ const GUID *const riid,
 			/* [out] */ void **ppvObject);
 
-		ULONG ( __stdcall *AddRef )(
+		ULONG(__stdcall *AddRef)(
 			/* [in] IShellLink*/ void *This);
 
-		ULONG ( __stdcall *Release )(
+		ULONG(__stdcall *Release)(
 			/* [in] IShellLink*/ void *This);
 
-		HRESULT ( __stdcall *GetCount )(
+		HRESULT(__stdcall *GetCount)(
 			/* [in] IShellLink*/ void *This,
 			/* [out] */ UINT *pcObjects);
 
-		HRESULT ( __stdcall *GetAt )(
+		HRESULT(__stdcall *GetAt)(
 			/* [in] IShellLink*/ void *This,
 			/* [in] */ UINT uiIndex,
-			/* [in] */ const GUID * const riid,
+			/* [in] */ const GUID *const riid,
 			/* [iid_is][out] */ void **ppv);
 
-		HRESULT ( __stdcall *AddObject )(
+		HRESULT(__stdcall *AddObject)(
 			/* [in] IShellLink*/ void *This,
 			/* [in] */ void *punk);
 
-		HRESULT ( __stdcall *AddFromArray )(
+		HRESULT(__stdcall *AddFromArray)(
 			/* [in] IShellLink*/ void *This,
 			/* [in] */ qIObjectArray *poaSource);
 
-		HRESULT ( __stdcall *RemoveObjectAt )(
+		HRESULT(__stdcall *RemoveObjectAt)(
 			/* [in] IShellLink*/ void *This,
 			/* [in] */ UINT uiIndex);
 
-		HRESULT ( __stdcall *Clear )(
+		HRESULT(__stdcall *Clear)(
 			/* [in] IShellLink*/ void *This);
 	} *lpVtbl;
 } qIObjectCollection;
-static const IID qIID_IObjectCollection = {0x5632b1a4, 0xe38a, 0x400a, {0x92,0x8a,0xd4,0xcd,0x63,0x23,0x02,0x95}};
-static const CLSID qCLSID_EnumerableObjectCollection = {0x2d3468c1, 0x36a7, 0x43b6, {0xac,0x24,0xd3,0xf0,0x2f,0xd9,0x60,0x7a}};
+static const IID qIID_IObjectCollection = {0x5632b1a4, 0xe38a, 0x400a, {0x92, 0x8a, 0xd4, 0xcd, 0x63, 0x23, 0x02, 0x95}};
+static const CLSID qCLSID_EnumerableObjectCollection = {0x2d3468c1, 0x36a7, 0x43b6, {0xac, 0x24, 0xd3, 0xf0, 0x2f, 0xd9, 0x60, 0x7a}};
 
 typedef struct qICustomDestinationList
 {
 	struct qICustomDestinationListVtbl
 	{
-		HRESULT ( __stdcall *QueryInterface ) (
+		HRESULT(__stdcall *QueryInterface)(
 			/* [in] ICustomDestinationList*/ void *This,
-			/* [in] */  const GUID * const riid,
+			/* [in] */ const GUID *const riid,
 			/* [out] */ void **ppvObject);
 
-		ULONG ( __stdcall *AddRef )(
+		ULONG(__stdcall *AddRef)(
 			/* [in] ICustomDestinationList*/ void *This);
 
-		ULONG ( __stdcall *Release )(
+		ULONG(__stdcall *Release)(
 			/* [in] ICustomDestinationList*/ void *This);
 
-		HRESULT ( __stdcall *SetAppID )(
+		HRESULT(__stdcall *SetAppID)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [string][in] */ LPCWSTR pszAppID);
 
-		HRESULT ( __stdcall *BeginList )(
+		HRESULT(__stdcall *BeginList)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [out] */ UINT *pcMinSlots,
-			/* [in] */  const GUID * const riid,
+			/* [in] */ const GUID *const riid,
 			/* [out] */ void **ppv);
 
-		HRESULT ( __stdcall *AppendCategory )(
+		HRESULT(__stdcall *AppendCategory)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [string][in] */ LPCWSTR pszCategory,
 			/* [in] IObjectArray*/ void *poa);
 
-		HRESULT ( __stdcall *AppendKnownCategory )(
+		HRESULT(__stdcall *AppendKnownCategory)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [in] KNOWNDESTCATEGORY*/ int category);
 
-		HRESULT ( __stdcall *AddUserTasks )(
+		HRESULT(__stdcall *AddUserTasks)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [in] IObjectArray*/ void *poa);
 
-		HRESULT ( __stdcall *CommitList )(
+		HRESULT(__stdcall *CommitList)(
 			/* [in] ICustomDestinationList*/ void *This);
 
-		HRESULT ( __stdcall *GetRemovedDestinations )(
+		HRESULT(__stdcall *GetRemovedDestinations)(
 			/* [in] ICustomDestinationList*/ void *This,
-			/* [in] */ const IID * const riid,
+			/* [in] */ const IID *const riid,
 			/* [out] */ void **ppv);
 
-		HRESULT ( __stdcall *DeleteList )(
+		HRESULT(__stdcall *DeleteList)(
 			/* [in] ICustomDestinationList*/ void *This,
 			/* [string][unique][in] */ LPCWSTR pszAppID);
 
-		HRESULT ( __stdcall *AbortList )(
+		HRESULT(__stdcall *AbortList)(
 			/* [in] ICustomDestinationList*/ void *This);
 
 	} *lpVtbl;
 } qICustomDestinationList;
 
-static const IID qIID_ICustomDestinationList = {0x6332debf, 0x87b5, 0x4670, {0x90,0xc0,0x5e,0x57,0xb4,0x08,0xa4,0x9e}};
-static const CLSID qCLSID_DestinationList = {0x77f10cf0, 0x3db5, 0x4966, {0xb5,0x20,0xb7,0xc5,0x4f,0xd3,0x5e,0xd6}};
+static const IID qIID_ICustomDestinationList = {0x6332debf, 0x87b5, 0x4670, {0x90, 0xc0, 0x5e, 0x57, 0xb4, 0x08, 0xa4, 0x9e}};
+static const CLSID qCLSID_DestinationList = {0x77f10cf0, 0x3db5, 0x4966, {0xb5, 0x20, 0xb7, 0xc5, 0x4f, 0xd3, 0x5e, 0xd6}};
 
 #define WIN7_APPNAME L"FTEQuake"
 
@@ -2442,17 +2428,17 @@ static IShellLinkW *CreateShellLink(char *command, char *target, char *title, ch
 	char tmp[1024], *s;
 
 	// Get a pointer to the IShellLink interface.
-	hr = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &qIID_IShellLinkW, (void**)&link);
+	hr = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &qIID_IShellLinkW, (void **)&link);
 	if (FAILED(hr))
 		return NULL;
 
-	GetModuleFileNameW(NULL, buf, countof(buf)-1);
-	IShellLinkW_SetIconLocation(link, buf, 0);  /*grab the first icon from our exe*/
-	IShellLinkW_SetPath(link, buf); /*program to run*/
+	GetModuleFileNameW(NULL, buf, countof(buf) - 1);
+	IShellLinkW_SetIconLocation(link, buf, 0); /*grab the first icon from our exe*/
+	IShellLinkW_SetPath(link, buf);			   /*program to run*/
 
 	Q_strncpyz(tmp, com_gamepath, sizeof(tmp));
 	/*normalize the gamedir, so we don't end up with the same thing multiple times*/
-	for(s = tmp; *s; s++)
+	for (s = tmp; *s; s++)
 	{
 		if (*s == '\\')
 			*s = '/';
@@ -2460,19 +2446,18 @@ static IShellLinkW *CreateShellLink(char *command, char *target, char *title, ch
 			*s = tolower(*s);
 	}
 	IShellLinkW_SetArguments(link, widen(buf, sizeof(buf), va("%s \"%s\" -basedir \"%s\"", command, target, tmp))); /*args*/
-	IShellLinkW_SetDescription(link, widen(buf, sizeof(buf), desc));  /*tooltip*/
+	IShellLinkW_SetDescription(link, widen(buf, sizeof(buf), desc));												/*tooltip*/
 
+	hr = IShellLinkW_QueryInterface(link, &qIID_IPropertyStore, (void **)&prop_store);
 
-	hr = IShellLinkW_QueryInterface(link, &qIID_IPropertyStore, (void**)&prop_store);
-
-	if(SUCCEEDED(hr))
+	if (SUCCEEDED(hr))
 	{
 		PROPVARIANT pv;
 		qPROPERTYKEY PKEY_Title;
-		pv.vt=VT_LPSTR;
-		pv.pszVal=title; /*item text*/
+		pv.vt = VT_LPSTR;
+		pv.pszVal = title; /*item text*/
 		CLSIDFromString(L"{F29F85E0-4FF9-1068-AB91-08002B27B3D9}", &(PKEY_Title.fmtid));
-		PKEY_Title.pid=2;
+		PKEY_Title.pid = 2;
 		hr = prop_store->lpVtbl->SetValue(prop_store, &PKEY_Title, &pv);
 		hr = prop_store->lpVtbl->Commit(prop_store);
 		prop_store->lpVtbl->Release(prop_store);
@@ -2490,41 +2475,40 @@ void Sys_RecentServer(char *command, char *target, char *title, char *desc)
 	if (!link)
 		return;
 
-	appinfo.pszAppID=WIN7_APPNAME;
-	appinfo.psl=link;
+	appinfo.pszAppID = WIN7_APPNAME;
+	appinfo.psl = link;
 	SHAddToRecentDocs(qSHARD_APPIDINFOLINK, &appinfo);
 	IShellLinkW_Release(link);
 }
 
-
-typedef struct {
-  LPCWSTR            pcszFile;
-  LPCWSTR            pcszClass;
-  int oaifInFlags;
+typedef struct
+{
+	LPCWSTR pcszFile;
+	LPCWSTR pcszClass;
+	int oaifInFlags;
 } qOPENASINFO;
-HRESULT (WINAPI *pSHOpenWithDialog)(HWND hwndParent, const qOPENASINFO *poainfo);
+HRESULT(WINAPI *pSHOpenWithDialog)(HWND hwndParent, const qOPENASINFO *poainfo);
 
-
-LPITEMIDLIST (STDAPICALLTYPE *pSHBrowseForFolderW)(LPBROWSEINFOW lpbi);
-BOOL (STDAPICALLTYPE *pSHGetPathFromIDListW)(LPCITEMIDLIST pidl, LPWSTR pszPath);
-BOOL (STDAPICALLTYPE *pSHGetSpecialFolderPathW)(HWND hwnd, LPWSTR pszPath, int csidl, BOOL fCreate);
-BOOL (STDAPICALLTYPE *pShell_NotifyIconW)(DWORD dwMessage, PNOTIFYICONDATAW lpData);
+LPITEMIDLIST(STDAPICALLTYPE *pSHBrowseForFolderW)(LPBROWSEINFOW lpbi);
+BOOL(STDAPICALLTYPE *pSHGetPathFromIDListW)(LPCITEMIDLIST pidl, LPWSTR pszPath);
+BOOL(STDAPICALLTYPE *pSHGetSpecialFolderPathW)(HWND hwnd, LPWSTR pszPath, int csidl, BOOL fCreate);
+BOOL(STDAPICALLTYPE *pShell_NotifyIconW)(DWORD dwMessage, PNOTIFYICONDATAW lpData);
 void Win7_Init(void)
 {
 	HANDLE h;
-	HRESULT (WINAPI *pSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
+	HRESULT(WINAPI * pSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 
 	h = LoadLibraryU("shell32.dll");
 	if (h)
 	{
-		pSHBrowseForFolderW			= (void*)GetProcAddress(h, "SHBrowseForFolderW");
-		pSHGetPathFromIDListW		= (void*)GetProcAddress(h, "SHGetPathFromIDListW");
-		pSHGetSpecialFolderPathW	= (void*)GetProcAddress(h, "SHGetSpecialFolderPathW");
-		pShell_NotifyIconW			= (void*)GetProcAddress(h, "Shell_NotifyIconW");
+		pSHBrowseForFolderW = (void *)GetProcAddress(h, "SHBrowseForFolderW");
+		pSHGetPathFromIDListW = (void *)GetProcAddress(h, "SHGetPathFromIDListW");
+		pSHGetSpecialFolderPathW = (void *)GetProcAddress(h, "SHGetSpecialFolderPathW");
+		pShell_NotifyIconW = (void *)GetProcAddress(h, "Shell_NotifyIconW");
 
-		pSHOpenWithDialog = (void*)GetProcAddress(h, "SHOpenWithDialog");
+		pSHOpenWithDialog = (void *)GetProcAddress(h, "SHOpenWithDialog");
 
-		pSetCurrentProcessExplicitAppUserModelID = (void*)GetProcAddress(h, "SetCurrentProcessExplicitAppUserModelID");
+		pSetCurrentProcessExplicitAppUserModelID = (void *)GetProcAddress(h, "SetCurrentProcessExplicitAppUserModelID");
 		if (pSetCurrentProcessExplicitAppUserModelID)
 			pSetCurrentProcessExplicitAppUserModelID(WIN7_APPNAME);
 	}
@@ -2537,28 +2521,28 @@ void Win7_TaskListInit(void)
 	qIObjectArray *arr;
 	IShellLinkW *link;
 	CoInitialize(NULL);
-	if (SUCCEEDED(CoCreateInstance(&qCLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, &qIID_ICustomDestinationList, (void**)&cdl)))
+	if (SUCCEEDED(CoCreateInstance(&qCLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, &qIID_ICustomDestinationList, (void **)&cdl)))
 	{
 		UINT minslots;
 		IUnknown *removed;
-		cdl->lpVtbl->BeginList(cdl, &minslots, &qIID_IObjectArray, (void**)&removed);
+		cdl->lpVtbl->BeginList(cdl, &minslots, &qIID_IObjectArray, (void **)&removed);
 
-		if (SUCCEEDED(CoCreateInstance(&qCLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, &qIID_IObjectCollection, (void**)&col)))
+		if (SUCCEEDED(CoCreateInstance(&qCLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, &qIID_IObjectCollection, (void **)&col)))
 		{
 
-			switch(M_GameType())
+			switch (M_GameType())
 			{
 			case MGT_QUAKE1:
 				link = CreateShellLink("+menu_servers", "", "Server List", "Pick a multiplayer server to join");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				link = CreateShellLink("+map start", "", "Start New Game (Quake)", "Begin a new single-player game");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				break;
@@ -2566,13 +2550,13 @@ void Win7_TaskListInit(void)
 				link = CreateShellLink("+menu_servers", "", "Quake2 Server List", "Pick a multiplayer server to join");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				link = CreateShellLink("+map unit1", "", "Start New Game (Quake2)", "Begin a new game");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				break;
@@ -2581,20 +2565,20 @@ void Win7_TaskListInit(void)
 				link = CreateShellLink("+menu_servers", "", "Hexen2 Server List", "Pick a multiplayer server to join");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				link = CreateShellLink("+map demo1", "", "Start New Game (Hexen2)", "Begin a new game");
 				if (link)
 				{
-					col->lpVtbl->AddObject(col, (IUnknown*)link);
+					col->lpVtbl->AddObject(col, (IUnknown *)link);
 					link->lpVtbl->Release(link);
 				}
 				break;
 #endif
 			}
 
-			if (SUCCEEDED(col->lpVtbl->QueryInterface(col, &qIID_IObjectArray, (void**)&arr)))
+			if (SUCCEEDED(col->lpVtbl->QueryInterface(col, &qIID_IObjectArray, (void **)&arr)))
 			{
 				cdl->lpVtbl->AddUserTasks(cdl, arr);
 				arr->lpVtbl->Release(arr);
@@ -2608,27 +2592,27 @@ void Win7_TaskListInit(void)
 }
 #endif
 
-//using this like posix' access function, but with much more code, microsoftisms, and no errno codes/info
-//no, I don't really have a clue why it needs to be so long.
-//#include <svrapi.h>
-#ifndef ACCESS_READ	
-#define         ACCESS_READ     0x1
-#define         ACCESS_WRITE    0x2
+// using this like posix' access function, but with much more code, microsoftisms, and no errno codes/info
+// no, I don't really have a clue why it needs to be so long.
+// #include <svrapi.h>
+#ifndef ACCESS_READ
+#define ACCESS_READ 0x1
+#define ACCESS_WRITE 0x2
 #endif
 static BOOL microsoft_accessW(LPWSTR pszFolder, DWORD dwAccessDesired)
 {
-	HANDLE			hToken;
-	PRIVILEGE_SET	PrivilegeSet;
-	DWORD			dwPrivSetSize;
-	DWORD			dwAccessGranted;
-	BOOL			fAccessGranted = FALSE;
-	GENERIC_MAPPING	GenericMapping;
-	SECURITY_INFORMATION si = (SECURITY_INFORMATION)( OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION);
+	HANDLE hToken;
+	PRIVILEGE_SET PrivilegeSet;
+	DWORD dwPrivSetSize;
+	DWORD dwAccessGranted;
+	BOOL fAccessGranted = FALSE;
+	GENERIC_MAPPING GenericMapping;
+	SECURITY_INFORMATION si = (SECURITY_INFORMATION)(OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION);
 	PSECURITY_DESCRIPTOR psdSD = NULL;
-	DWORD			dwNeeded;
-	GetFileSecurityW(pszFolder,si,NULL,0,&dwNeeded);
+	DWORD dwNeeded;
+	GetFileSecurityW(pszFolder, si, NULL, 0, &dwNeeded);
 	psdSD = malloc(dwNeeded);
-	GetFileSecurityW(pszFolder,si,psdSD,dwNeeded,&dwNeeded);
+	GetFileSecurityW(pszFolder, si, psdSD, dwNeeded, &dwNeeded);
 	ImpersonateSelf(SecurityImpersonation);
 	OpenThreadToken(GetCurrentThread(), TOKEN_ALL_ACCESS, TRUE, &hToken);
 	memset(&GenericMapping, 0xff, sizeof(GENERIC_MAPPING));
@@ -2644,26 +2628,25 @@ static BOOL microsoft_accessW(LPWSTR pszFolder, DWORD dwAccessDesired)
 }
 static BOOL microsoft_accessU(LPCSTR pszFolder, DWORD dwAccessDesired)
 {
-	wchar_t			wpath[MAX_OSPATH];
+	wchar_t wpath[MAX_OSPATH];
 	return microsoft_accessW(widen(wpath, sizeof(wpath), pszFolder), dwAccessDesired);
 }
 
-
 #ifndef SVNREVISION
-	#if 0	//1 to debug engine update in msvc.
-		#define SVNREVISION 1
-	#else
-		#define SVNREVISION -
-	#endif
+#if 0 // 1 to debug engine update in msvc.
+#define SVNREVISION 1
+#else
+#define SVNREVISION -
+#endif
 #endif
 #define SVNREVISIONSTR STRINGIFY(SVNREVISION)
 
-#if 0//ndef NOLEGACY
-	#if defined(SVNREVISION) && !defined(MINIMAL)
-		#if defined(OFFICIAL_RELEASE)
-			#define UPD_BUILDTYPE "rel"
-		#else
-			#define UPD_BUILDTYPE "test"
+#if 0 // ndef NOLEGACY
+#if defined(SVNREVISION) && !defined(MINIMAL)
+#if defined(OFFICIAL_RELEASE)
+#define UPD_BUILDTYPE "rel"
+#else
+#define UPD_BUILDTYPE "test"
 			//WARNING: Security comes from the fact that the triptohell.info certificate is hardcoded in the tls code.
 			//this will correctly detect insecure tls proxies also.
 //			#define UPDATE_URL_ROOT		"https://triptohell.info/moodles/"
@@ -2683,84 +2666,84 @@ static BOOL microsoft_accessU(LPCSTR pszFolder, DWORD dwAccessDesired)
 					#define UPDATE_URL_BUILD "%swin32/fte" EXETYPE ".exe"
 				#endif
 			#endif*/
-		#endif
+#endif
 
-		#if defined(SERVERONLY)
-			#define EXETYPE "qwsv"	//not gonna happen, but whatever.
-		#elif defined(GLQUAKE) && defined(D3DQUAKE)
-			#define EXETYPE "qw"
-		#elif defined(GLQUAKE)
-			#ifdef MINIMAL
-				#define EXETYPE "minglqw"
-			#else
-				#define EXETYPE "glqw"
-			#endif
-		#elif defined(D3DQUAKE)
-			#define EXETYPE "d3dqw"
-		#elif defined(SWQUAKE)
-			#define EXETYPE "swqw"
-		#else
+#if defined(SERVERONLY)
+#define EXETYPE "qwsv" // not gonna happen, but whatever.
+#elif defined(GLQUAKE) && defined(D3DQUAKE)
+#define EXETYPE "qw"
+#elif defined(GLQUAKE)
+#ifdef MINIMAL
+#define EXETYPE "minglqw"
+#else
+#define EXETYPE "glqw"
+#endif
+#elif defined(D3DQUAKE)
+#define EXETYPE "d3dqw"
+#elif defined(SWQUAKE)
+#define EXETYPE "swqw"
+#else
 			//erm...
-			#define EXETYPE "qw"
-		#endif
-	#endif
+#define EXETYPE "qw"
+#endif
+#endif
 #endif
 
 #ifdef HAVEAUTOUPDATE
-//this is for legacy reasons. old builds stored a 'pending' name in the registry for the 'frontend' to rename+use
+// this is for legacy reasons. old builds stored a 'pending' name in the registry for the 'frontend' to rename+use
 qboolean Sys_SetUpdatedBinary(const char *newbinary)
 {
-/* //legacy crap, completely redundant when we're replacing the original binary
-#ifdef UPD_BUILDTYPE
-	//downloads menu has provided a new binary to use
-	MyRegSetValue(HKEY_CURRENT_USER, "Software\\"FULLENGINENAME, "pending" UPD_BUILDTYPE EXETYPE, REG_SZ, newbinary, strlen(newbinary)+1);
-#endif
-*/
+	/* //legacy crap, completely redundant when we're replacing the original binary
+	#ifdef UPD_BUILDTYPE
+		//downloads menu has provided a new binary to use
+		MyRegSetValue(HKEY_CURRENT_USER, "Software\\"FULLENGINENAME, "pending" UPD_BUILDTYPE EXETYPE, REG_SZ, newbinary, strlen(newbinary)+1);
+	#endif
+	*/
 	wchar_t newbinaryw[MAX_OSPATH];
 	wchar_t enginebinary[MAX_OSPATH];
-	wchar_t enginebinarybackup[MAX_OSPATH+4];
+	wchar_t enginebinarybackup[MAX_OSPATH + 4];
 	size_t len;
 	static qboolean alreadymoved = false;
-	
-	//update blocked via commandline. to be doubly sure its checked.
+
+	// update blocked via commandline. to be doubly sure its checked.
 	if (COM_CheckParm("-noupdate") || COM_CheckParm("--noupdate") || COM_CheckParm("-noautoupdate") || COM_CheckParm("--noautoupdate"))
 		return false;
 
-	//windows is annoying. we can't delete a file that's in use (no orphaning)
-	//we can normally rename it to something else before writing a new file with the original name.
-	//then delete the old file later (sadly only on reboot)
+	// windows is annoying. we can't delete a file that's in use (no orphaning)
+	// we can normally rename it to something else before writing a new file with the original name.
+	// then delete the old file later (sadly only on reboot)
 
-	//because microsoft suck.
+	// because microsoft suck.
 	widen(newbinaryw, sizeof(newbinaryw), newbinary);
-	//get the binary name
-	GetModuleFileNameW(NULL, enginebinary, countof(enginebinary)-1);
+	// get the binary name
+	GetModuleFileNameW(NULL, enginebinary, countof(enginebinary) - 1);
 #ifdef HAVE_LEGACY
 	//--fromfrontend was removed for r5596.
-	//it had two args - launcher version and launcher filename, so that if the user manually updated then it'd use the more recent build.
-	//replace the original launcher instead.
+	// it had two args - launcher version and launcher filename, so that if the user manually updated then it'd use the more recent build.
+	// replace the original launcher instead.
 	{
 		int arg = COM_CheckParm("--fromfrontend");
 		if (arg)
-			widen(enginebinary, sizeof(enginebinary), com_argv[arg+2]);
+			widen(enginebinary, sizeof(enginebinary), com_argv[arg + 2]);
 	}
 #endif
-	//generate the temp name
+	// generate the temp name
 	memcpy(enginebinarybackup, enginebinary, sizeof(enginebinary));
 	len = wcslen(enginebinarybackup);
-	if (len > 4 && !_wcsicmp(enginebinarybackup+len-4, L".exe"))
-		len -= 4;	//swap its extension over, if we can.
-	wcscpy(enginebinarybackup+len, L".bak");
+	if (len > 4 && !_wcsicmp(enginebinarybackup + len - 4, L".exe"))
+		len -= 4; // swap its extension over, if we can.
+	wcscpy(enginebinarybackup + len, L".bak");
 
-	//can fail if we don't have write access. can fail for a few other reasons.
+	// can fail if we don't have write access. can fail for a few other reasons.
 	if (alreadymoved || MoveFileExW(enginebinary, enginebinarybackup, MOVEFILE_REPLACE_EXISTING))
 	{
-		//can fail if windows is bugging out again
+		// can fail if windows is bugging out again
 		if (CopyFileW(newbinaryw, enginebinary, FALSE))
-		{	//delete the old one eventually, when we can.
-			if (!DeleteFileW(enginebinarybackup))	//if we can directly delete it... sadly this will normally fail but lets try it anyway. maybe it'll get opened with SHARE_DELETE some time!
-				MoveFileExW(enginebinarybackup, NULL, MOVEFILE_DELAY_UNTIL_REBOOT);	//schedule it to delete if we can't do it from the start.
-			alreadymoved = true; //if we already moved it, don't try to delete-by-overwrite the current binary, just delete it...
-			return true;	//yay! it worked!
+		{																			// delete the old one eventually, when we can.
+			if (!DeleteFileW(enginebinarybackup))									// if we can directly delete it... sadly this will normally fail but lets try it anyway. maybe it'll get opened with SHARE_DELETE some time!
+				MoveFileExW(enginebinarybackup, NULL, MOVEFILE_DELAY_UNTIL_REBOOT); // schedule it to delete if we can't do it from the start.
+			alreadymoved = true;													// if we already moved it, don't try to delete-by-overwrite the current binary, just delete it...
+			return true;															// yay! it worked!
 		}
 		if (!alreadymoved)
 			MoveFileExW(enginebinarybackup, enginebinary, 0);
@@ -2773,25 +2756,25 @@ qboolean Sys_EngineMayUpdate(void)
 	wchar_t enginebinaryw[MAX_OSPATH];
 	if (!COM_CheckParm("-allowupdate"))
 	{
-		char enginebinary[MAX_OSPATH*4];
+		char enginebinary[MAX_OSPATH * 4];
 		char *s;
 		if (revision_number(true) <= 0)
 			return false;
 
-		GetModuleFileNameW(NULL, enginebinaryw, countof(enginebinaryw)-1);
+		GetModuleFileNameW(NULL, enginebinaryw, countof(enginebinaryw) - 1);
 		narrowen(enginebinary, sizeof(enginebinary), enginebinaryw);
-		//if there's 3 consecutive digits or digit.digit then assume the user is doing their own versioning, and disallow engine updates (unless they use the -allowupdate arg).
+		// if there's 3 consecutive digits or digit.digit then assume the user is doing their own versioning, and disallow engine updates (unless they use the -allowupdate arg).
 		//(that or they ran one of our older builds directly)
-        for (s=COM_SkipPath(enginebinary); *s; s++)
+		for (s = COM_SkipPath(enginebinary); *s; s++)
 		{
-			if ( s[0] >= '0' && s[0] <= '9')
-			if ((s[1] >= '0' && s[1] <= '9') || s[1] == '.' || s[1] == '_' || s[1] == '-')
-			if ( s[2] >= '0' && s[2] <= '9')
-				return false;
+			if (s[0] >= '0' && s[0] <= '9')
+				if ((s[1] >= '0' && s[1] <= '9') || s[1] == '.' || s[1] == '_' || s[1] == '-')
+					if (s[2] >= '0' && s[2] <= '9')
+						return false;
 		}
 	}
 
-	//update blocked via commandline
+	// update blocked via commandline
 	if (COM_CheckParm("-noupdate") || COM_CheckParm("--noupdate") || COM_CheckParm("-noautoupdate") || COM_CheckParm("--noautoupdate"))
 		return false;
 
@@ -2836,22 +2819,22 @@ qboolean Sys_EngineWasUpdated(char *newbinary)
 #endif
 
 #include "shellapi.h"
-const GUID qIID_IApplicationAssociationRegistrationUI = {0x1f76a169,0xf994,0x40ac, {0x8f,0xc8,0x09,0x59,0xe8,0x87,0x47,0x10}};
-const GUID qCLSID_ApplicationAssociationRegistrationUI = {0x1968106d,0xf3b5,0x44cf,{0x89,0x0e,0x11,0x6f,0xcb,0x9e,0xce,0xf1}};
+const GUID qIID_IApplicationAssociationRegistrationUI = {0x1f76a169, 0xf994, 0x40ac, {0x8f, 0xc8, 0x09, 0x59, 0xe8, 0x87, 0x47, 0x10}};
+const GUID qCLSID_ApplicationAssociationRegistrationUI = {0x1968106d, 0xf3b5, 0x44cf, {0x89, 0x0e, 0x11, 0x6f, 0xcb, 0x9e, 0xce, 0xf1}};
 struct qIApplicationAssociationRegistrationUI;
 typedef struct qIApplicationAssociationRegistrationUI
 {
 	struct qIApplicationAssociationRegistrationUI_vtab
 	{
-		HRESULT  (WINAPI *QueryInterface)				(struct qIApplicationAssociationRegistrationUI *, const GUID *riid, void **ppvObject);
-		HRESULT  (WINAPI *AddRef)						(struct qIApplicationAssociationRegistrationUI *);
-		HRESULT  (WINAPI *Release)						(struct qIApplicationAssociationRegistrationUI *);
-		HRESULT  (WINAPI *LaunchAdvancedAssociationUI)	(struct qIApplicationAssociationRegistrationUI *, LPCWSTR app);
+		HRESULT(WINAPI *QueryInterface)(struct qIApplicationAssociationRegistrationUI *, const GUID *riid, void **ppvObject);
+		HRESULT(WINAPI *AddRef)(struct qIApplicationAssociationRegistrationUI *);
+		HRESULT(WINAPI *Release)(struct qIApplicationAssociationRegistrationUI *);
+		HRESULT(WINAPI *LaunchAdvancedAssociationUI)(struct qIApplicationAssociationRegistrationUI *, LPCWSTR app);
 	} *lpVtbl;
 } qIApplicationAssociationRegistrationUI;
 
 char *Sys_URIScheme_NeedsRegistering(void)
-{   //just disables the prompts.
+{ // just disables the prompts.
 	HKEY root;
 	char buffer[2048];
 	char scheme[64];
@@ -2859,9 +2842,9 @@ char *Sys_URIScheme_NeedsRegistering(void)
 	char *exec, *me;
 	size_t i;
 	wchar_t enginebinaryw[MAX_OSPATH];
-	char enginebinary[MAX_OSPATH*4];
+	char enginebinary[MAX_OSPATH * 4];
 
-	for (s = schemes; (s=COM_ParseOut(s, scheme, sizeof(scheme))); )
+	for (s = schemes; (s = COM_ParseOut(s, scheme, sizeof(scheme)));)
 	{
 		root = HKEY_CURRENT_USER;
 		if (!MyRegGetStringValue(root, va("Software\\Classes\\%s", scheme), "", buffer, sizeof(buffer)))
@@ -2871,40 +2854,40 @@ char *Sys_URIScheme_NeedsRegistering(void)
 				break;
 		}
 
-		//the scheme exists at least...
+		// the scheme exists at least...
 		if (!MyRegGetStringValue(root, va("Software\\Classes\\%s\\shell\\open\\command", scheme), "", buffer, sizeof(buffer)))
-			break; //erk, missing.
+			break; // erk, missing.
 		COM_Parse(buffer);
 		if (!microsoft_accessU(com_token, ACCESS_READ))
-			break;	//can't read it? doesn't exist?
+			break; // can't read it? doesn't exist?
 		exec = COM_SkipPath(com_token);
 		for (i = 0; exec[i]; i++)
 			if (exec[i] == '_' || exec[i] == '.' || (exec[i] >= '0' && exec[i] <= '9'))
-			{	//anything that looks like a revision number
+			{ // anything that looks like a revision number
 				exec[i] = 0;
 				break;
 			}
 
-		GetModuleFileNameW(NULL, enginebinaryw, countof(enginebinaryw)-1);
+		GetModuleFileNameW(NULL, enginebinaryw, countof(enginebinaryw) - 1);
 		narrowen(enginebinary, sizeof(enginebinary), enginebinaryw);
 		me = COM_SkipPath(enginebinary);
 		for (i = 0; me[i]; i++)
 			if (me[i] == '_' || me[i] == '.' || (me[i] >= '0' && me[i] <= '9'))
-			{	//anything that looks like a revision number
+			{ // anything that looks like a revision number
 				me[i] = 0;
 				break;
 			}
 		if (Q_strcasecmp(exec, me))
-			break;	//looks like its set to something else.
+			break; // looks like its set to something else.
 	}
 
 	if (s)
 		return Z_StrDup(scheme);
-    return NULL;
+	return NULL;
 }
 void Sys_DoFileAssociations(int elevated, const char *schemes)
 {
-	//elevated:
+	// elevated:
 	//	0: console command
 	//	1: running as an elevated/admin process
 	//	2: register as current user only (do not show associations prompt).
@@ -2914,64 +2897,64 @@ void Sys_DoFileAssociations(int elevated, const char *schemes)
 	qboolean ok = true;
 	HKEY root;
 
-	//I'd do everything in current_user if I could, but windows sucks too much for that.
+	// I'd do everything in current_user if I could, but windows sucks too much for that.
 	//'registered applications' simply does not work in hkcu, we MUST use hklm for that.
-	//if there's a registered application and we are not, we are unable to grab that association, ever.
-	//thus we HAVE to do things to the local machine or we might as well not bother doing anything.
-	//still, with a manifest not giving false success, if the user clicks 'no' to the UAC prompt, we'll write everything to the current user anyway, so if microsoft do ever fix things, then yay.
-	//also, I hate the idea of creating a 'registered application' in globally without the file types it uses being local.
+	// if there's a registered application and we are not, we are unable to grab that association, ever.
+	// thus we HAVE to do things to the local machine or we might as well not bother doing anything.
+	// still, with a manifest not giving false success, if the user clicks 'no' to the UAC prompt, we'll write everything to the current user anyway, so if microsoft do ever fix things, then yay.
+	// also, I hate the idea of creating a 'registered application' in globally without the file types it uses being local.
 
-	//on xp, we use ONLY current user. no 'registered applications' means no 'registered applications bug', which means no need to use hklm at all.
-	//in vista/7, we have to create stuff in local_machine. in which case we might as well put ALL associations in there. the ui stuff will allow user-specific settings, so this is not an issue other than the fact that it triggers uac.
-	//in 8, we cannot programatically force ownership of our associations, so we might as well just use the ui method even for vista+7 instead of the ruder version.
-	//in win10, the 'ui' stuff is just a quick popup to tell the user to configure defaults themselves. hopefully we can fall back on the regular associations for when the user didn't override anyting.
+	// on xp, we use ONLY current user. no 'registered applications' means no 'registered applications bug', which means no need to use hklm at all.
+	// in vista/7, we have to create stuff in local_machine. in which case we might as well put ALL associations in there. the ui stuff will allow user-specific settings, so this is not an issue other than the fact that it triggers uac.
+	// in 8, we cannot programatically force ownership of our associations, so we might as well just use the ui method even for vista+7 instead of the ruder version.
+	// in win10, the 'ui' stuff is just a quick popup to tell the user to configure defaults themselves. hopefully we can fall back on the regular associations for when the user didn't override anyting.
 	if (qwinvermaj < 6)
 		elevated = 2;
 
-	root = (elevated>=2)?HKEY_CURRENT_USER:HKEY_LOCAL_MACHINE;
+	root = (elevated >= 2) ? HKEY_CURRENT_USER : HKEY_LOCAL_MACHINE;
 
 //	#define ASSOC_VERSION 2
 #define ASSOCV "1"
 
-	//register the basic demo class
+	// register the basic demo class
 	Q_snprintfz(command, sizeof(command), "Quake or QuakeWorld Demo");
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_DemoFile."ASSOCV, "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_DemoFile." ASSOCV, "", REG_SZ, command, strlen(command));
 	Q_snprintfz(command, sizeof(command), "\"%s\",0", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_DemoFile."ASSOCV"\\DefaultIcon", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_DemoFile." ASSOCV "\\DefaultIcon", "", REG_SZ, command, strlen(command));
 	Q_snprintfz(command, sizeof(command), "\"%s\" \"%%1\"", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_DemoFile."ASSOCV"\\shell\\open\\command", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_DemoFile." ASSOCV "\\shell\\open\\command", "", REG_SZ, command, strlen(command));
 	if (ok)
-	{	//and now the extensions themselves...
-		MyRegSetValue(root, "Software\\Classes\\.qtv", "", REG_SZ, DISTRIBUTION"_DemoFile."ASSOCV, strlen(DISTRIBUTION"_DemoFile."ASSOCV));
-		MyRegSetValue(root, "Software\\Classes\\.mvd", "", REG_SZ, DISTRIBUTION"_DemoFile."ASSOCV, strlen(DISTRIBUTION"_DemoFile."ASSOCV));
-		MyRegSetValue(root, "Software\\Classes\\.qwd", "", REG_SZ, DISTRIBUTION"_DemoFile."ASSOCV, strlen(DISTRIBUTION"_DemoFile."ASSOCV));
-		MyRegSetValue(root, "Software\\Classes\\.dem", "", REG_SZ, DISTRIBUTION"_DemoFile."ASSOCV, strlen(DISTRIBUTION"_DemoFile."ASSOCV));
+	{ // and now the extensions themselves...
+		MyRegSetValue(root, "Software\\Classes\\.qtv", "", REG_SZ, DISTRIBUTION "_DemoFile." ASSOCV, strlen(DISTRIBUTION "_DemoFile." ASSOCV));
+		MyRegSetValue(root, "Software\\Classes\\.mvd", "", REG_SZ, DISTRIBUTION "_DemoFile." ASSOCV, strlen(DISTRIBUTION "_DemoFile." ASSOCV));
+		MyRegSetValue(root, "Software\\Classes\\.qwd", "", REG_SZ, DISTRIBUTION "_DemoFile." ASSOCV, strlen(DISTRIBUTION "_DemoFile." ASSOCV));
+		MyRegSetValue(root, "Software\\Classes\\.dem", "", REG_SZ, DISTRIBUTION "_DemoFile." ASSOCV, strlen(DISTRIBUTION "_DemoFile." ASSOCV));
 	}
 
-	//register the basic map class. yeah, the command is the same as for demos. but the description is different!
+	// register the basic map class. yeah, the command is the same as for demos. but the description is different!
 	Q_snprintfz(command, sizeof(command), "Quake Map");
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_BSPFile."ASSOCV, "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_BSPFile." ASSOCV, "", REG_SZ, command, strlen(command));
 	Q_snprintfz(command, sizeof(command), "\"%s\",0", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_BSPFile."ASSOCV"\\DefaultIcon", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_BSPFile." ASSOCV "\\DefaultIcon", "", REG_SZ, command, strlen(command));
 	Q_snprintfz(command, sizeof(command), "\"%s\" \"%%1\"", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_BSPFile."ASSOCV"\\shell\\open\\command", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_BSPFile." ASSOCV "\\shell\\open\\command", "", REG_SZ, command, strlen(command));
 	if (ok)
-	{	//and now the extensions themselves...
-		MyRegSetValue(root, "Software\\Classes\\.bsp", "", REG_SZ, DISTRIBUTION"_BSPFile."ASSOCV, strlen(DISTRIBUTION"_BSPFile."ASSOCV));
-		MyRegSetValue(root, "Software\\Classes\\.map", "", REG_SZ, DISTRIBUTION"_BSPFile."ASSOCV, strlen(DISTRIBUTION"_BSPFile."ASSOCV));
+	{ // and now the extensions themselves...
+		MyRegSetValue(root, "Software\\Classes\\.bsp", "", REG_SZ, DISTRIBUTION "_BSPFile." ASSOCV, strlen(DISTRIBUTION "_BSPFile." ASSOCV));
+		MyRegSetValue(root, "Software\\Classes\\.map", "", REG_SZ, DISTRIBUTION "_BSPFile." ASSOCV, strlen(DISTRIBUTION "_BSPFile." ASSOCV));
 	}
 
-	//register the basic uri scheme class
+	// register the basic uri scheme class
 	Q_snprintfz(command, sizeof(command), "QuakeWorld Server");
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_Server."ASSOCV"", "", REG_SZ, command, strlen(command));
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_Server."ASSOCV"", "URL Protocol", REG_SZ, "", strlen(""));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_Server." ASSOCV "", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_Server." ASSOCV "", "URL Protocol", REG_SZ, "", strlen(""));
 	Q_snprintfz(command, sizeof(command), "\"%s\",0", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_Server."ASSOCV"\\DefaultIcon", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_Server." ASSOCV "\\DefaultIcon", "", REG_SZ, command, strlen(command));
 	Q_snprintfz(command, sizeof(command), "\"%s\" \"%%1\"", com_argv[0]);
-	ok = ok & MyRegSetValue(root, "Software\\Classes\\"DISTRIBUTION"_Server."ASSOCV"\\shell\\open\\command", "", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\Classes\\" DISTRIBUTION "_Server." ASSOCV "\\shell\\open\\command", "", REG_SZ, command, strlen(command));
 	if (ok)
-	{	//and now the schemes themselves... (doesn't really use the same scheme stuff)
-		for (s = schemes; (s=COM_ParseOut(s, scheme, sizeof(scheme))); )
+	{ // and now the schemes themselves... (doesn't really use the same scheme stuff)
+		for (s = schemes; (s = COM_ParseOut(s, scheme, sizeof(scheme)));)
 		{
 			Q_snprintfz(command, sizeof(command), "QuakeWorld Server");
 			MyRegSetValue(root, va("Software\\Classes\\%s", scheme), "", REG_SZ, command, strlen(command));
@@ -2983,57 +2966,56 @@ void Sys_DoFileAssociations(int elevated, const char *schemes)
 		}
 	}
 
-
-	//now try to get ourselves listed in windows' 'default programs' ui.
+	// now try to get ourselves listed in windows' 'default programs' ui.
 	Q_snprintfz(command, sizeof(command), "%s", FULLENGINENAME);
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities", "ApplicationName", REG_SZ, command, strlen(command));
-	Q_snprintfz(command, sizeof(command), "%s", FULLENGINENAME" is an awesome hybrid game engine able to run multiple Quake-compatible/derived games.");
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities", "ApplicationDescription", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities", "ApplicationName", REG_SZ, command, strlen(command));
+	Q_snprintfz(command, sizeof(command), "%s", FULLENGINENAME " is an awesome hybrid game engine able to run multiple Quake-compatible/derived games.");
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities", "ApplicationDescription", REG_SZ, command, strlen(command));
 
-	Q_snprintfz(command, sizeof(command), DISTRIBUTION"_DemoFile.1");
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".qtv", REG_SZ, command, strlen(command));
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".mvd", REG_SZ, command, strlen(command));
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".qwd", REG_SZ, command, strlen(command));
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".dem", REG_SZ, command, strlen(command));
-//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".dm2", REG_SZ, command, strlen(command));
+	Q_snprintfz(command, sizeof(command), DISTRIBUTION "_DemoFile.1");
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".qtv", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".mvd", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".qwd", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".dem", REG_SZ, command, strlen(command));
+	//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".dm2", REG_SZ, command, strlen(command));
 
-	Q_snprintfz(command, sizeof(command), DISTRIBUTION"_BSPFile.1");
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".bsp", REG_SZ, command, strlen(command));
-	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".map", REG_SZ, command, strlen(command));
+	Q_snprintfz(command, sizeof(command), DISTRIBUTION "_BSPFile.1");
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".bsp", REG_SZ, command, strlen(command));
+	ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\FileAssociations", ".map", REG_SZ, command, strlen(command));
 
-//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".fmf", REG_SZ, DISTRIBUTION"_ManifestFile", strlen(DISTRIBUTION"_ManifestFile"));
-//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\MIMEAssociations", "application/x-ftemanifest", REG_SZ, DISTRIBUTION"_ManifestFile", strlen(DISTRIBUTION"_ManifestFile"));
+	//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\FileAssociations", ".fmf", REG_SZ, DISTRIBUTION"_ManifestFile", strlen(DISTRIBUTION"_ManifestFile"));
+	//	ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME"\\Capabilities\\MIMEAssociations", "application/x-ftemanifest", REG_SZ, DISTRIBUTION"_ManifestFile", strlen(DISTRIBUTION"_ManifestFile"));
 
-	Q_snprintfz(command, sizeof(command), DISTRIBUTION"_Server."ASSOCV);
-	for (s = schemes; (s=COM_ParseOut(s, scheme, sizeof(scheme))); )
+	Q_snprintfz(command, sizeof(command), DISTRIBUTION "_Server." ASSOCV);
+	for (s = schemes; (s = COM_ParseOut(s, scheme, sizeof(scheme)));)
 	{
-		ok = ok & MyRegSetValue(root, "Software\\"FULLENGINENAME "\\Capabilities\\UrlAssociations", scheme, REG_SZ, command, strlen(command));
+		ok = ok & MyRegSetValue(root, "Software\\" FULLENGINENAME "\\Capabilities\\UrlAssociations", scheme, REG_SZ, command, strlen(command));
 	}
-	
-	Q_snprintfz(command, sizeof(command), "Software\\"FULLENGINENAME"\\Capabilities");
+
+	Q_snprintfz(command, sizeof(command), "Software\\" FULLENGINENAME "\\Capabilities");
 	ok = ok & MyRegSetValue(root, "Software\\RegisteredApplications", FULLENGINENAME, REG_SZ, command, strlen(command));
 
-	//also try to add it to current user.
-	if (root==HKEY_LOCAL_MACHINE)
+	// also try to add it to current user.
+	if (root == HKEY_LOCAL_MACHINE)
 		Sys_DoFileAssociations(2, schemes);
 
-	//let the shell know that file associations changed (otherwise we might have to wait for a reboot)
+	// let the shell know that file associations changed (otherwise we might have to wait for a reboot)
 	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
 
-	if (!ok && root==HKEY_LOCAL_MACHINE)
+	if (!ok && root == HKEY_LOCAL_MACHINE)
 	{
 		ShellExecute(mainwindow, "runas", com_argv[0], va("-register_types \"%s\"", schemes), NULL, SW_SHOWNORMAL);
 		return;
 	}
 
-	if (ok && root==HKEY_LOCAL_MACHINE)
+	if (ok && root == HKEY_LOCAL_MACHINE)
 	{
-		//attempt to display the vista+ prompt (only way possible in win8, apparently)
-		//note that in win10 this will supposedly just show a notification popup with the user required to configure it manually via control panel.
+		// attempt to display the vista+ prompt (only way possible in win8, apparently)
+		// note that in win10 this will supposedly just show a notification popup with the user required to configure it manually via control panel.
 		qIApplicationAssociationRegistrationUI *aarui = NULL;
 
 		CoInitialize(NULL);
-		if (FAILED(CoCreateInstance(&qCLSID_ApplicationAssociationRegistrationUI, 0, CLSCTX_INPROC_SERVER, &qIID_IApplicationAssociationRegistrationUI, (LPVOID*)&aarui)))
+		if (FAILED(CoCreateInstance(&qCLSID_ApplicationAssociationRegistrationUI, 0, CLSCTX_INPROC_SERVER, &qIID_IApplicationAssociationRegistrationUI, (LPVOID *)&aarui)))
 			aarui = NULL;
 
 		if (aarui)
@@ -3046,17 +3028,17 @@ void Sys_DoFileAssociations(int elevated, const char *schemes)
 		else
 		{
 
-/*
-#define wideify2(a) L##a
-#define wideify(a) wideify2(a)
-			qOPENASINFO open_as_info = {0};
-			open_as_info.pcszFile = L".mvd";
-			open_as_info.pcszClass = wideify(DISTRIBUTION)L"_DemoFile.1";
-			open_as_info.oaifInFlags = 8 | 2;//OAIF_FORCE_REGISTRATION | OAIF_REGISTER_EXT;
-			if (pSHOpenWithDialog)
-				pSHOpenWithDialog(NULL, &open_as_info);
-			SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
-*/
+			/*
+			#define wideify2(a) L##a
+			#define wideify(a) wideify2(a)
+						qOPENASINFO open_as_info = {0};
+						open_as_info.pcszFile = L".mvd";
+						open_as_info.pcszClass = wideify(DISTRIBUTION)L"_DemoFile.1";
+						open_as_info.oaifInFlags = 8 | 2;//OAIF_FORCE_REGISTRATION | OAIF_REGISTER_EXT;
+						if (pSHOpenWithDialog)
+							pSHOpenWithDialog(NULL, &open_as_info);
+						SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
+			*/
 		}
 	}
 }
@@ -3082,8 +3064,8 @@ static int Sys_ProcessCommandline(char **argv, int maxargc, char *argv0)
 	unsigned char utf8cmdline[4096], *cl = utf8cmdline;
 	narrowen(utf8cmdline, sizeof(utf8cmdline), wc);
 
-//	argv[argc] = argv0;
-//	argc++;
+	//	argv[argc] = argv0;
+	//	argc++;
 
 	while (*cl && (argc < maxargc))
 	{
@@ -3106,7 +3088,6 @@ static int Sys_ProcessCommandline(char **argv, int maxargc, char *argv0)
 			{
 				argv[argc] = cl;
 				argc++;
-
 
 				while (*cl && *cl > 32)
 					cl++;
@@ -3145,11 +3126,11 @@ int MessageBoxU(HWND hWnd, char *lpText, char *lpCaption, UINT uType)
 #define LONG_PTR LONG
 #endif
 #ifndef BIF_NEWDIALOGSTYLE
-#define BIF_NEWDIALOGSTYLE	0x00000040		//v5
-#define BFFM_SETOKTEXT		(WM_USER + 105)	//v6
-#define BFFM_SETEXPANDED	(WM_USER + 106)	//v6
+#define BIF_NEWDIALOGSTYLE 0x00000040	 // v5
+#define BFFM_SETOKTEXT (WM_USER + 105)	 // v6
+#define BFFM_SETEXPANDED (WM_USER + 106) // v6
 #endif
-static const IID qIID_IPersistFile	= {0x0000010BL, 0, 0, {0xc0,0,0,0,0,0,0,0x46}};
+static const IID qIID_IPersistFile = {0x0000010BL, 0, 0, {0xc0, 0, 0, 0, 0, 0, 0, 0x46}};
 
 static WNDPROC omgwtfwhyohwhy;
 static LRESULT CALLBACK stoopidstoopidstoopid(HWND w, UINT m, WPARAM wp, LPARAM lp)
@@ -3160,44 +3141,44 @@ static LRESULT CALLBACK stoopidstoopidstoopid(HWND w, UINT m, WPARAM wp, LPARAM 
 		switch (((LPNMHDR)lp)->code)
 		{
 		case TVN_ENDLABELEDITW:
-			{
-				LRESULT r;
-				NMTVDISPINFOW *fu = (NMTVDISPINFOW*)lp;
-				NMTREEVIEWW gah;
-				gah.action = TVC_UNKNOWN;
-				gah.itemOld = fu->item;
-				gah.itemNew = fu->item;
-				gah.ptDrag.x = gah.ptDrag.y = 0;
-				gah.hdr = fu->hdr;
-				gah.hdr.code = TVN_SELCHANGEDW;
-				r = CallWindowProcW(omgwtfwhyohwhy,w,m,wp,lp);
-				CallWindowProcW(omgwtfwhyohwhy,w,WM_NOTIFY,wp,(LPARAM)&gah);
-				return r;
-			}
-			break;
+		{
+			LRESULT r;
+			NMTVDISPINFOW *fu = (NMTVDISPINFOW *)lp;
+			NMTREEVIEWW gah;
+			gah.action = TVC_UNKNOWN;
+			gah.itemOld = fu->item;
+			gah.itemNew = fu->item;
+			gah.ptDrag.x = gah.ptDrag.y = 0;
+			gah.hdr = fu->hdr;
+			gah.hdr.code = TVN_SELCHANGEDW;
+			r = CallWindowProcW(omgwtfwhyohwhy, w, m, wp, lp);
+			CallWindowProcW(omgwtfwhyohwhy, w, WM_NOTIFY, wp, (LPARAM)&gah);
+			return r;
+		}
+		break;
 		case TVN_ENDLABELEDITA:
-			{
-				LRESULT r;
-				NMTVDISPINFOA *fu = (NMTVDISPINFOA*)lp;
-				NMTREEVIEWA gah;
-				gah.action = TVC_UNKNOWN;
-				gah.itemOld = fu->item;
-				gah.itemNew = fu->item;
-				gah.ptDrag.x = gah.ptDrag.y = 0;
-				gah.hdr = fu->hdr;
-				gah.hdr.code = TVN_SELCHANGEDA;
-				r = CallWindowProcW(omgwtfwhyohwhy,w,m,wp,lp);
-				CallWindowProcW(omgwtfwhyohwhy,w,WM_NOTIFY,wp,(LPARAM)&gah);
-				return r;
-			}
-			break;
+		{
+			LRESULT r;
+			NMTVDISPINFOA *fu = (NMTVDISPINFOA *)lp;
+			NMTREEVIEWA gah;
+			gah.action = TVC_UNKNOWN;
+			gah.itemOld = fu->item;
+			gah.itemNew = fu->item;
+			gah.ptDrag.x = gah.ptDrag.y = 0;
+			gah.hdr = fu->hdr;
+			gah.hdr.code = TVN_SELCHANGEDA;
+			r = CallWindowProcW(omgwtfwhyohwhy, w, m, wp, lp);
+			CallWindowProcW(omgwtfwhyohwhy, w, WM_NOTIFY, wp, (LPARAM)&gah);
+			return r;
+		}
+		break;
 		case TVN_SELCHANGEDA:
 		case TVN_SELCHANGEDW:
 			break;
 		}
 		break;
 	}
-	return CallWindowProcW(omgwtfwhyohwhy,w,m,wp,lp);
+	return CallWindowProcW(omgwtfwhyohwhy, w, m, wp, lp);
 }
 
 struct egadsthisisretarded
@@ -3211,28 +3192,28 @@ struct egadsthisisretarded
 void FS_Directorize(char *fname, size_t fnamesize)
 {
 	size_t l = strlen(fname);
-	if (!l)	//technically already a directory
+	if (!l) // technically already a directory
 		return;
-	if (fname[l-1] == '\\' || fname[l-1] == '/')
-		return;	//already a directory
+	if (fname[l - 1] == '\\' || fname[l - 1] == '/')
+		return; // already a directory
 	Q_strncatz(fname, "/", fnamesize);
 }
 
-static INT CALLBACK StupidBrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pDatafoo) 
-{	//'stolen' from microsoft's knowledge base.
-	//required to work around microsoft being annoying.
-	struct egadsthisisretarded *pData = (struct egadsthisisretarded*)pDatafoo;
-//	char *foo;
+static INT CALLBACK StupidBrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pDatafoo)
+{ //'stolen' from microsoft's knowledge base.
+	// required to work around microsoft being annoying.
+	struct egadsthisisretarded *pData = (struct egadsthisisretarded *)pDatafoo;
+	//	char *foo;
 	HWND edit = FindWindowEx(hwnd, NULL, "EDIT", NULL);
 	HWND list;
-//	OutputDebugString(va("got %u (%u)\n", uMsg, lp));
-	switch(uMsg)
+	//	OutputDebugString(va("got %u (%u)\n", uMsg, lp));
+	switch (uMsg)
 	{
 	case BFFM_INITIALIZED:
-		//combat windows putting new windows behind everything else if it takes a while for UAC prompts to go away
-		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+		// combat windows putting new windows behind everything else if it takes a while for UAC prompts to go away
+		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
-		//combat windows bug where renaming something doesn't update the dialog's path
+		// combat windows bug where renaming something doesn't update the dialog's path
 		list = FindWindowExW(hwnd, NULL, L"SHBROWSEFORFOLDER SHELLNAMESPACE CONTROL", NULL);
 		if (list)
 			omgwtfwhyohwhy = (WNDPROC)SetWindowLongPtr(list, GWLP_WNDPROC, (LONG_PTR)stoopidstoopidstoopid);
@@ -3240,21 +3221,21 @@ static INT CALLBACK StupidBrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LP
 		{
 			wchar_t szDir[MAX_PATH];
 #ifndef _DEBUG
-			extern qboolean	com_homepathenabled;
-			//the standard location iiuc
+			extern qboolean com_homepathenabled;
+			// the standard location iiuc
 			if (com_homepathenabled && pSHGetSpecialFolderPathW(NULL, szDir, CSIDL_PROGRAM_FILES, TRUE) && microsoft_accessW(szDir, ACCESS_READ | ACCESS_WRITE))
 				;
 			else if (microsoft_accessU("C:\\Games\\", ACCESS_READ | ACCESS_WRITE))
 				widen(szDir, sizeof(szDir), "C:\\Games\\");
 			else if (microsoft_accessU("C:\\", ACCESS_READ | ACCESS_WRITE))
 				widen(szDir, sizeof(szDir), "C:\\");
-			//if we're not an admin, install it somewhere else.
+			// if we're not an admin, install it somewhere else.
 			else if (pSHGetSpecialFolderPathW(NULL, szDir, CSIDL_LOCAL_APPDATA, TRUE) && microsoft_accessW(szDir, ACCESS_READ | ACCESS_WRITE))
 				;
 			else
 #endif
-				if (GetCurrentDirectoryW(countof(szDir), szDir))// && microsoft_access(szDir, ACCESS_READ | ACCESS_WRITE))
-					;
+				if (GetCurrentDirectoryW(countof(szDir), szDir)) // && microsoft_access(szDir, ACCESS_READ | ACCESS_WRITE))
+				;
 			SendMessageW(hwnd, BFFM_SETSELECTIONW, TRUE, (LPARAM)szDir);
 			SendMessageW(hwnd, BFFM_SETEXPANDED, TRUE, (LPARAM)szDir);
 			SendMessageW(hwnd, BFFM_SETOKTEXT, TRUE, (LPARAM)widen(szDir, sizeof(szDir), "Install"));
@@ -3275,35 +3256,35 @@ static INT CALLBACK StupidBrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LP
 		}
 
 		if (microsoft_accessU(va("%s%s", pData->parentdir, pData->subdir), ACCESS_READ))
-			return MessageBoxU(hwnd, va("%s%s already exists!\nThis installer will (generally) not overwrite existing data files.\nIf you want to re-install, you must manually uninstall it first.\n\nContinue?", pData->parentdir, pData->subdir), fs_gamename.string, MB_ICONWARNING|MB_OKCANCEL|MB_TOPMOST) == IDCANCEL;
+			return MessageBoxU(hwnd, va("%s%s already exists!\nThis installer will (generally) not overwrite existing data files.\nIf you want to re-install, you must manually uninstall it first.\n\nContinue?", pData->parentdir, pData->subdir), fs_gamename.string, MB_ICONWARNING | MB_OKCANCEL | MB_TOPMOST) == IDCANCEL;
 		else
 			return MessageBoxU(hwnd, va("Install to %s%s ?", pData->parentdir, pData->subdir), fs_gamename.string, MB_OKCANCEL) == IDCANCEL;
-	case BFFM_SELCHANGED: 
+	case BFFM_SELCHANGED:
+	{
+		wchar_t wide[MAX_PATH * 2 + 2];
+		char *foo;
+		if (pSHGetPathFromIDListW((LPITEMIDLIST)lp, wide))
 		{
-			wchar_t wide[MAX_PATH*2+2];
-			char *foo;
-			if (pSHGetPathFromIDListW((LPITEMIDLIST)lp, wide))
+			narrowen(pData->parentdir, sizeof(pData->parentdir), wide);
+			FS_Directorize(pData->parentdir, sizeof(pData->parentdir));
+
+			// this'll make microsoft happy.
+			while ((foo = strchr(pData->parentdir, '/')))
+				*foo = '\\';
+
+			if (edit)
 			{
-				narrowen(pData->parentdir, sizeof(pData->parentdir), wide);
-				FS_Directorize(pData->parentdir, sizeof(pData->parentdir));
-
-				//this'll make microsoft happy.
-				while((foo = strchr(pData->parentdir, '/')))
-					*foo = '\\';
-
-				if (edit)
-				{
-					wchar_t wide[128];
-					SetWindowTextW(edit, widen(wide, sizeof(wide), fs_gamename.string));
-					SendMessageW(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)widen(wide, sizeof(wide), va("%s", pData->parentdir)));
-				}
-				else
-					SendMessageW(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)widen(wide, sizeof(wide), va("%s%s", pData->parentdir, fs_gamename.string)));
+				wchar_t wide[128];
+				SetWindowTextW(edit, widen(wide, sizeof(wide), fs_gamename.string));
+				SendMessageW(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)widen(wide, sizeof(wide), va("%s", pData->parentdir)));
 			}
+			else
+				SendMessageW(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)widen(wide, sizeof(wide), va("%s%s", pData->parentdir, fs_gamename.string)));
 		}
-		break;
-//	case BFFM_IUNKNOWN:
-//		break;
+	}
+	break;
+		//	case BFFM_IUNKNOWN:
+		//		break;
 	}
 	return 0;
 }
@@ -3343,25 +3324,25 @@ static qboolean Sys_DoInstall(void)
 
 	if (fs_manifest && fs_manifest->eula)
 	{
-		if (MessageBoxU(NULL, fs_manifest->eula, fs_gamename.string, MB_OKCANCEL|MB_TOPMOST|MB_DEFBUTTON2) != IDOK)
+		if (MessageBoxU(NULL, fs_manifest->eula, fs_gamename.string, MB_OKCANCEL | MB_TOPMOST | MB_DEFBUTTON2) != IDOK)
 			return TRUE;
 	}
 
 	Q_strncpyz(diediedie.subdir, fs_gamename.string, sizeof(diediedie.subdir));
 	_snwprintf(diediedie.title, countof(diediedie.title), L"Where would you like to install %s to?", widen(wide, sizeof(wide), fs_gamename.string));
-	GetCurrentDirectoryW(countof(wide)-1, wide);
+	GetCurrentDirectoryW(countof(wide) - 1, wide);
 
 	memset(&bi, 0, sizeof(bi));
-	bi.hwndOwner = mainwindow; //note that this is usually still null
+	bi.hwndOwner = mainwindow; // note that this is usually still null
 	bi.pidlRoot = NULL;
 	bi.pszDisplayName = wide;
 	bi.lpszTitle = diediedie.title;
-	bi.ulFlags = BIF_RETURNONLYFSDIRS|BIF_STATUSTEXT | BIF_EDITBOX|BIF_NEWDIALOGSTYLE|BIF_VALIDATE;
+	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT | BIF_EDITBOX | BIF_NEWDIALOGSTYLE | BIF_VALIDATE;
 	bi.lpfn = StupidBrowseCallbackProc;
 	bi.lParam = (LPARAM)&diediedie;
 	bi.iImage = 0;
 
-	il = pSHBrowseForFolderW?pSHBrowseForFolderW(&bi):NULL;
+	il = pSHBrowseForFolderW ? pSHBrowseForFolderW(&bi) : NULL;
 	if (il)
 	{
 		pSHGetPathFromIDListW(il, wide);
@@ -3396,42 +3377,42 @@ static qboolean Sys_DoInstall(void)
 		char fname[MAX_OSPATH];
 		memset(&wc, 0, sizeof(wc));
 		wc.style = 0;
-		wc.lpfnWndProc		= NoCloseWindowProc;//Progress_Wnd;
-		wc.hInstance		= hInstance;
-		wc.hCursor			= LoadCursor (NULL,IDC_ARROW);
-		wc.hbrBackground	= (void *)COLOR_WINDOW;
-		wc.lpszClassName	= "FTEPROG";
+		wc.lpfnWndProc = NoCloseWindowProc; // Progress_Wnd;
+		wc.hInstance = hInstance;
+		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+		wc.hbrBackground = (void *)COLOR_WINDOW;
+		wc.lpszClassName = "FTEPROG";
 		RegisterClass(&wc);
 
 		ca.right = GetSystemMetrics(SM_CXSCREEN);
 		ca.bottom = GetSystemMetrics(SM_CYSCREEN);
 
-		mainwindow = wnd = CreateWindowEx(0, wc.lpszClassName, va("%s Installer",  fs_gamename.string), 0, (ca.right-320)/2, (ca.bottom-100)/2, 320, 100, NULL, NULL, hInstance, NULL);
+		mainwindow = wnd = CreateWindowEx(0, wc.lpszClassName, va("%s Installer", fs_gamename.string), 0, (ca.right - 320) / 2, (ca.bottom - 100) / 2, 320, 100, NULL, NULL, hInstance, NULL);
 
-		GetClientRect(wnd, &ca); 
+		GetClientRect(wnd, &ca);
 		sh = GetSystemMetrics(SM_CYVSCROLL);
 
 		Sys_LoadLibrary("comctl32.dll", NULL);
-//		InitCommonControls();
+		//		InitCommonControls();
 
-		label = CreateWindow("STATIC","", WS_CHILD | WS_VISIBLE | SS_PATHELLIPSIS, sh, ((ca.bottom-ca.top-sh)/3), ca.right-ca.left-2*sh, sh, wnd, NULL, hInstance, NULL);
-		progress = CreateWindowEx(0, PROGRESS_CLASS, NULL, WS_CHILD | WS_VISIBLE | PBS_SMOOTH, sh, ((ca.bottom-ca.top-sh)/3)*2, ca.right-ca.left-2*sh, sh, wnd, NULL, hInstance, NULL);
+		label = CreateWindow("STATIC", "", WS_CHILD | WS_VISIBLE | SS_PATHELLIPSIS, sh, ((ca.bottom - ca.top - sh) / 3), ca.right - ca.left - 2 * sh, sh, wnd, NULL, hInstance, NULL);
+		progress = CreateWindowEx(0, PROGRESS_CLASS, NULL, WS_CHILD | WS_VISIBLE | PBS_SMOOTH, sh, ((ca.bottom - ca.top - sh) / 3) * 2, ca.right - ca.left - 2 * sh, sh, wnd, NULL, hInstance, NULL);
 
 		ShowWindow(wnd, SW_NORMAL);
-		SetWindowPos(wnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
+		SetWindowPos(wnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
 		SendMessage(progress, PBM_SETRANGE32, 0, 10000);
 		*fname = 0;
 		HTTP_CL_Think(NULL, NULL);
-		while(FS_DownloadingPackage())
+		while (FS_DownloadingPackage())
 		{
 			MSG msg;
-			char *cur = cls.download?COM_SkipPath(cls.download->localname):"Please Wait";
-			int newpct = cls.download?cls.download->percent*100:0;
+			char *cur = cls.download ? COM_SkipPath(cls.download->localname) : "Please Wait";
+			int newpct = cls.download ? cls.download->percent * 100 : 0;
 
 			if (cls.download && cls.download->sizeunknown)
 			{
-				//marquee needs manifest bollocks in order to work. so lets just not bother.
+				// marquee needs manifest bollocks in order to work. so lets just not bother.
 				float time = Sys_DoubleTime();
 				newpct = 10000 * (time - (int)time);
 				if ((int)time & 1)
@@ -3449,8 +3430,8 @@ static qboolean Sys_DoInstall(void)
 				pct = newpct;
 			}
 
-			while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
-				DispatchMessage (&msg);
+			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				DispatchMessage(&msg);
 
 			Sleep(10);
 			HTTP_CL_Think(NULL, NULL);
@@ -3462,11 +3443,11 @@ static qboolean Sys_DoInstall(void)
 	}
 
 	/*create startmenu icon*/
-	if (MessageBoxU(NULL, va("Create start-menu icon for %s?", fs_gamename.string), fs_gamename.string, MB_YESNO|MB_ICONQUESTION|MB_TOPMOST) == IDYES)
+	if (MessageBoxU(NULL, va("Create start-menu icon for %s?", fs_gamename.string), fs_gamename.string, MB_YESNO | MB_ICONQUESTION | MB_TOPMOST) == IDYES)
 	{
 		HRESULT hres;
 		IShellLinkW *psl;
-		hres = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &qIID_IShellLinkW, (LPVOID*)&psl);
+		hres = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &qIID_IShellLinkW, (LPVOID *)&psl);
 		if (SUCCEEDED(hres))
 		{
 			char startmenu[MAX_OSPATH];
@@ -3476,7 +3457,7 @@ static qboolean Sys_DoInstall(void)
 			psl->lpVtbl->SetPath(psl, wsz);
 			widen(wsz, sizeof(wsz), resultpath);
 			psl->lpVtbl->SetWorkingDirectory(psl, wsz);
-			hres = psl->lpVtbl->QueryInterface(psl, &qIID_IPersistFile, (LPVOID*)&ppf);
+			hres = psl->lpVtbl->QueryInterface(psl, &qIID_IPersistFile, (LPVOID *)&ppf);
 			if (SUCCEEDED(hres) && pSHGetSpecialFolderPathW(NULL, wsz, CSIDL_COMMON_PROGRAMS, TRUE))
 			{
 				WCHAR wsz[MAX_PATH];
@@ -3495,8 +3476,8 @@ static qboolean Sys_DoInstall(void)
 		}
 	}
 
-	//now start it up properly.
-	ShellExecuteW(mainwindow, L"open", widen(wide, sizeof(wide), newexepath), Q_strcasecmp(fs_manifest->installation, "quake")?L"":L"+sys_register_file_associations", widen(wide2, sizeof(wide2), resultpath), SW_SHOWNORMAL);
+	// now start it up properly.
+	ShellExecuteW(mainwindow, L"open", widen(wide, sizeof(wide), newexepath), Q_strcasecmp(fs_manifest->installation, "quake") ? L"" : L"+sys_register_file_associations", widen(wide2, sizeof(wide2), resultpath), SW_SHOWNORMAL);
 	return true;
 }
 qboolean Sys_RunInstaller(void)
@@ -3507,13 +3488,13 @@ qboolean Sys_RunInstaller(void)
 		return Sys_DoInstall();
 	if (!com_installer)
 		return false;
-	if (MessageBoxU(NULL, va("%s is not installed. Install now?", fs_gamename.string), fs_gamename.string, MB_OKCANCEL|MB_ICONQUESTION|MB_TOPMOST) == IDOK)
+	if (MessageBoxU(NULL, va("%s is not installed. Install now?", fs_gamename.string), fs_gamename.string, MB_OKCANCEL | MB_ICONQUESTION | MB_TOPMOST) == IDOK)
 	{
 		GetModuleFileName(NULL, exepath, sizeof(exepath));
 		ch = ShellExecute(mainwindow, "runas", com_argv[0], va("%s -doinstall", COM_Parse(GetCommandLine())), NULL, SW_SHOWNORMAL);
 		if ((qintptr_t)ch > 32)
-			return true;	//succeeded. should quit out.
-		return Sys_DoInstall();	//if it failed, try doing it with the current privileges
+			return true;		// succeeded. should quit out.
+		return Sys_DoInstall(); // if it failed, try doing it with the current privileges
 	}
 	return true;
 }
@@ -3526,30 +3507,30 @@ static const char *Sys_FindManifest(void)
 	HRSRC hdl = FindResource(NULL, MAKEINTRESOURCE(1), RT_RCDATA);
 	HGLOBAL hgl = LoadResource(NULL, hdl);
 	fmf = LockResource(hgl);
-//	MessageBox(NULL, fmf, "Embedded manifest", 0);
+	//	MessageBox(NULL, fmf, "Embedded manifest", 0);
 	return fmf;
 }
 
-//size info that microsoft recommends
+// size info that microsoft recommends
 static const struct
 {
 	int width;
 	int height;
 	int bpp;
 } icosizes[] = {
-//	{96, 96, 32},
-//	{48, 48, 32},
-//	{32, 32, 32},
-//	{16, 16, 32},
-//	{16, 16, 4},
-//	{48, 48, 4},
-//	{32, 32, 4},
-//	{16, 16, 1},
-//	{48, 48, 1},
-//	{32, 32, 1},
-	{256, 256, 32}	//vista!
+	//	{96, 96, 32},
+	//	{48, 48, 32},
+	//	{32, 32, 32},
+	//	{16, 16, 32},
+	//	{16, 16, 4},
+	//	{48, 48, 4},
+	//	{32, 32, 4},
+	//	{16, 16, 1},
+	//	{48, 48, 1},
+	//	{32, 32, 1},
+	{256, 256, 32} // vista!
 };
-//dates back to 16bit windows. bah.
+// dates back to 16bit windows. bah.
 #pragma pack(push)
 #pragma pack(2)
 typedef struct
@@ -3559,15 +3540,15 @@ typedef struct
 	WORD idCount;
 	struct
 	{
-		BYTE  bWidth;
-		BYTE  bHeight;
-		BYTE  bColorCount;
-		BYTE  bReserved;
-		WORD  wPlanes;
-		WORD  wBitCount;
+		BYTE bWidth;
+		BYTE bHeight;
+		BYTE bColorCount;
+		BYTE bReserved;
+		WORD wPlanes;
+		WORD wBitCount;
 		DWORD dwBytesInRes;
-		WORD  nId;
-	} idEntries[sizeof(icosizes)/sizeof(icosizes[0])];
+		WORD nId;
+	} idEntries[sizeof(icosizes) / sizeof(icosizes[0])];
 } icon_group_t;
 #pragma pack(pop)
 
@@ -3610,10 +3591,10 @@ static void Sys_MakeInstaller(const char *name)
 			VFS_READ(filehandle, filedata, filelen);
 			VFS_CLOSE(filehandle);
 
-			//nuke existing icons.
+			// nuke existing icons.
 			UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(1), RESLANG, NULL, 0);
 			UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(2), RESLANG, NULL, 0);
-//			UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(3), RESLANG, NULL, 0);
+			//			UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(3), RESLANG, NULL, 0);
 
 			rgbadata = ReadRawImageFile(filedata, filelen, &imgwidth, &imgheight, &format, true, va("%s.png", name));
 			if (!rgbadata)
@@ -3625,40 +3606,40 @@ static void Sys_MakeInstaller(const char *name)
 				unsigned int i;
 				extern cvar_t gl_lerpimages;
 				gl_lerpimages.ival = 1;
-				for (i = 0; i < sizeof(icosizes)/sizeof(icosizes[0]); i++)
+				for (i = 0; i < sizeof(icosizes) / sizeof(icosizes[0]); i++)
 				{
-					unsigned int x,y;
+					unsigned int x, y;
 					if (icosizes[i].width > imgwidth || icosizes[i].height > imgheight)
-						continue;	//ignore icons if they're bigger than the original icon.
+						continue; // ignore icons if they're bigger than the original icon.
 
 					if (icosizes[i].bpp == 32 && icosizes[i].width >= 128 && icosizes[i].height >= 128 && icosizes[i].width == imgwidth && icosizes[i].height == imgheight)
-					{	//png compression. oh look. we originally loaded a png!
+					{ // png compression. oh look. we originally loaded a png!
 						data = filedata;
 						datalen = filelen;
 					}
 					else
 					{
-						//generate the bitmap info
+						// generate the bitmap info
 						BITMAPV4HEADER *bi;
 						qbyte *out, *outmask;
 						qbyte *in, *inrow;
 						unsigned int outidx;
 
-						bi = data = Z_Malloc(sizeof(*bi) + icosizes[i].width * icosizes[i].height * 5 + icosizes[i].height*4);
-						memset(bi,0, sizeof(BITMAPINFOHEADER));
-						bi->bV4Size				= sizeof(BITMAPINFOHEADER);
-						bi->bV4Width			= icosizes[i].width;
-						bi->bV4Height			= icosizes[i].height * 2;
-						bi->bV4Planes			= 1;
-						bi->bV4BitCount			= icosizes[i].bpp;
-						bi->bV4V4Compression	= BI_RGB;
-						bi->bV4ClrUsed			= (icosizes[i].bpp>=32?0:(1u<<icosizes[i].bpp));
+						bi = data = Z_Malloc(sizeof(*bi) + icosizes[i].width * icosizes[i].height * 5 + icosizes[i].height * 4);
+						memset(bi, 0, sizeof(BITMAPINFOHEADER));
+						bi->bV4Size = sizeof(BITMAPINFOHEADER);
+						bi->bV4Width = icosizes[i].width;
+						bi->bV4Height = icosizes[i].height * 2;
+						bi->bV4Planes = 1;
+						bi->bV4BitCount = icosizes[i].bpp;
+						bi->bV4V4Compression = BI_RGB;
+						bi->bV4ClrUsed = (icosizes[i].bpp >= 32 ? 0 : (1u << icosizes[i].bpp));
 
 						datalen = bi->bV4Size;
-						out = (qbyte*)data + datalen;
-						datalen += ((icosizes[i].width*icosizes[i].bpp/8+3)&~3) * icosizes[i].height;
-						outmask = (qbyte*)data + datalen;
-						datalen += ((icosizes[i].width+31)&~31)/8 * icosizes[i].height;
+						out = (qbyte *)data + datalen;
+						datalen += ((icosizes[i].width * icosizes[i].bpp / 8 + 3) & ~3) * icosizes[i].height;
+						outmask = (qbyte *)data + datalen;
+						datalen += ((icosizes[i].width + 31) & ~31) / 8 * icosizes[i].height;
 
 						in = Image_ResampleTexture(format, rgbadata, imgwidth, imgheight, NULL, icosizes[i].width, icosizes[i].height);
 
@@ -3668,11 +3649,11 @@ static void Sys_MakeInstaller(const char *name)
 						{
 							for (y = 0; y < icosizes[i].height; y++)
 							{
-								inrow = in + 4*icosizes[i].width*(icosizes[i].height-1-y);
+								inrow = in + 4 * icosizes[i].width * (icosizes[i].height - 1 - y);
 								for (x = 0; x < icosizes[i].width; x++)
 								{
-									if (inrow[3] == 0)	//transparent
-										outmask[outidx>>3] |= 1u<<(outidx&7);
+									if (inrow[3] == 0) // transparent
+										outmask[outidx >> 3] |= 1u << (outidx & 7);
 									else
 									{
 										out[0] = inrow[2];
@@ -3684,8 +3665,8 @@ static void Sys_MakeInstaller(const char *name)
 									inrow += 4;
 								}
 								if (x & 3)
-									out += 4 - (x&3);
-								outidx = (outidx + 31)&~31;
+									out += 4 - (x & 3);
+								outidx = (outidx + 31) & ~31;
 							}
 						}
 					}
@@ -3693,19 +3674,19 @@ static void Sys_MakeInstaller(const char *name)
 					if (!error && !UpdateResource(bin, RT_ICON, MAKEINTRESOURCE(iconid), 0, data, datalen))
 						error = "UpdateResource failed (icon data)";
 
-					//and make a copy of it in the icon list
-					icondata.idEntries[icondata.idCount].bWidth = (icosizes[i].width<256)?icosizes[i].width:0;
-					icondata.idEntries[icondata.idCount].bHeight = (icosizes[i].height<256)?icosizes[i].height:0;
+					// and make a copy of it in the icon list
+					icondata.idEntries[icondata.idCount].bWidth = (icosizes[i].width < 256) ? icosizes[i].width : 0;
+					icondata.idEntries[icondata.idCount].bHeight = (icosizes[i].height < 256) ? icosizes[i].height : 0;
 					icondata.idEntries[icondata.idCount].wBitCount = icosizes[i].bpp;
 					icondata.idEntries[icondata.idCount].wPlanes = 1;
-					icondata.idEntries[icondata.idCount].bColorCount = (icosizes[i].bpp>=8)?0:(1u<<icosizes[i].bpp);
+					icondata.idEntries[icondata.idCount].bColorCount = (icosizes[i].bpp >= 8) ? 0 : (1u << icosizes[i].bpp);
 					icondata.idEntries[icondata.idCount].dwBytesInRes = datalen;
 					icondata.idEntries[icondata.idCount].nId = iconid++;
 					icondata.idCount++;
 				}
 			}
 
-			if (!error && !UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(IDI_ICON1), RESLANG, &icondata, (qbyte*)&icondata.idEntries[icondata.idCount] - (qbyte*)&icondata))
+			if (!error && !UpdateResource(bin, RT_GROUP_ICON, MAKEINTRESOURCE(IDI_ICON1), RESLANG, &icondata, (qbyte *)&icondata.idEntries[icondata.idCount] - (qbyte *)&icondata))
 				error = "UpdateResource failed (icon group)";
 			BZ_Free(filedata);
 		}
@@ -3716,11 +3697,11 @@ static void Sys_MakeInstaller(const char *name)
 		if (filehandle)
 		{
 			filelen = VFS_GETLEN(filehandle);
-			filedata = BZ_Malloc(filelen+1);
+			filedata = BZ_Malloc(filelen + 1);
 			filedata[filelen] = 0;
 			VFS_READ(filehandle, filedata, filelen);
 			VFS_CLOSE(filehandle);
-			if (!error && !UpdateResource(bin, RT_RCDATA, MAKEINTRESOURCE(1), 0, filedata, filelen+1))
+			if (!error && !UpdateResource(bin, RT_RCDATA, MAKEINTRESOURCE(1), 0, filedata, filelen + 1))
 				error = "UpdateResource failed (manicfest)";
 			BZ_Free(filedata);
 		}
@@ -3746,17 +3727,18 @@ static void Sys_MakeInstaller(const char *name)
 #endif
 
 #if defined(_MSC_VER) && defined(_AMD64_)
-#pragma optimize( "", off)	//64bit msvc sucks and falls over when trying to inline Host_Frame
+#pragma optimize("", off) // 64bit msvc sucks and falls over when trying to inline Host_Frame
 #endif
 #ifdef __GNUC__
 __attribute__((visibility("default")))
 #endif
-int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-//    MSG				msg;
-	quakeparms_t	parms;
-	double			time, oldtime, newtime;
-	char	cwd[1024], bindir[1024];
+	//    MSG				msg;
+	quakeparms_t parms;
+	double time, oldtime, newtime;
+	char cwd[1024], bindir[1024];
 	const char *qtvfile = NULL;
 	char lang[32];
 	char ctry[32];
@@ -3770,7 +3752,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	{
 		OSVERSIONINFOA vinfo;
 		vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-		if (GetVersionExA (&vinfo))
+		if (GetVersionExA(&vinfo))
 			WinNT = vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT;
 	}
 
@@ -3782,10 +3764,10 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	/*work around potentially serious windows flaw loading dlls from the current directory, by loading a dll...*/
 	{
-		BOOL (WINAPI *pSetDllDirectoryW)(LPCWSTR lpPathName);
-		dllfunction_t ffsfuncs[] = {{(void*)&pSetDllDirectoryW, "SetDllDirectoryW"}, {NULL,NULL}};
+		BOOL(WINAPI * pSetDllDirectoryW)(LPCWSTR lpPathName);
+		dllfunction_t ffsfuncs[] = {{(void *)&pSetDllDirectoryW, "SetDllDirectoryW"}, {NULL, NULL}};
 		if (Sys_LoadLibrary("kernel32.dll", ffsfuncs))
-			pSetDllDirectoryW(L"");	//disables it (null for 'use working directory')
+			pSetDllDirectoryW(L""); // disables it (null for 'use working directory')
 	}
 
 	Win7_Init();
@@ -3797,13 +3779,13 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		char cpuname[13];
 		/*I'm not going to check to make sure cpuid works.*/
 		__asm
-		{
+			{
 			xor eax, eax
 			cpuid
 			mov dword ptr [cpuname+0],ebx
 			mov dword ptr [cpuname+4],edx
 			mov dword ptr [cpuname+8],ecx
-		}
+			}
 		cpuname[12] = 0;
 		__asm
 		{
@@ -3812,72 +3794,72 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 			mov idedx, edx
 		}
 #if _M_IX86_FP >= 2
-		if (!(idedx&(1<<26)))
+		if (!(idedx & (1 << 26)))
 			MessageBox(NULL, "This is an SSE2 optimised build, and your cpu doesn't seem to support it", DISTRIBUTION, 0);
 		else
 #endif
-			  if (!(idedx&(1<<25)))
+			if (!(idedx & (1 << 25)))
 				MessageBox(NULL, "This is an SSE optimised build, and your cpu doesn't seem to support it", DISTRIBUTION, 0);
 	}
 #endif
 #endif
 
 #ifdef CATCHCRASH
-	LoadLibraryU ("DBGHELP");	//heap corruption can prevent loadlibrary from working properly, so do this in advance.
+	LoadLibraryU("DBGHELP"); // heap corruption can prevent loadlibrary from working properly, so do this in advance.
 #ifdef MSVC_SEH
 	__try
 #else
 	{
-		PVOID (WINAPI *pAddVectoredExceptionHandler)(ULONG	FirstHandler,	PVECTORED_EXCEPTION_HANDLER VectoredHandler);
-		dllfunction_t dbgfuncs[] = {{(void*)&pAddVectoredExceptionHandler, "AddVectoredExceptionHandler"}, {NULL,NULL}};
+		PVOID(WINAPI * pAddVectoredExceptionHandler)(ULONG FirstHandler, PVECTORED_EXCEPTION_HANDLER VectoredHandler);
+		dllfunction_t dbgfuncs[] = {{(void *)&pAddVectoredExceptionHandler, "AddVectoredExceptionHandler"}, {NULL, NULL}};
 		if (Sys_LoadLibrary("kernel32.dll", dbgfuncs) && pAddVectoredExceptionHandler)
 			pAddVectoredExceptionHandler(0, nonmsvc_CrashExceptionHandler);
 	}
 #endif
 #endif
 	{
-/*
-#ifndef _DEBUG
-#ifdef _MSC_VER
-		signal (SIGFPE,	Signal_Error_Handler);
-		signal (SIGILL,	Signal_Error_Handler);
-		signal (SIGSEGV,	Signal_Error_Handler);
-#endif
-#endif
-*/
+		/*
+		#ifndef _DEBUG
+		#ifdef _MSC_VER
+				signal (SIGFPE,	Signal_Error_Handler);
+				signal (SIGILL,	Signal_Error_Handler);
+				signal (SIGSEGV,	Signal_Error_Handler);
+		#endif
+		#endif
+		*/
 		global_hInstance = hInstance;
 		global_nCmdShow = nCmdShow;
 
 #ifdef RESTARTTEST
-		setjmp (restart_jmpbuf);
+		setjmp(restart_jmpbuf);
 #endif
 
 		if (WinNT)
 		{
 			wchar_t widebindir[1024];
-			GetModuleFileNameW(NULL, widebindir, sizeof(widebindir)/sizeof(widebindir[0])-1);
-			narrowen(bindir, sizeof(bindir)-1, widebindir);
+			GetModuleFileNameW(NULL, widebindir, sizeof(widebindir) / sizeof(widebindir[0]) - 1);
+			narrowen(bindir, sizeof(bindir) - 1, widebindir);
 		}
 		else
-			GetModuleFileNameA(NULL, bindir, sizeof(bindir)-1);
+			GetModuleFileNameA(NULL, bindir, sizeof(bindir) - 1);
 		parms.argc = Sys_ProcessCommandline(sys_argv, MAX_NUM_ARGVS, bindir);
 		*COM_SkipPath(bindir) = 0;
 		parms.argv = (const char **)sys_argv;
 
 		parms.binarydir = bindir;
-		COM_InitArgv (parms.argc, parms.argv);
+		COM_InitArgv(parms.argc, parms.argv);
 
 #ifdef PLUGINS
 		c = COM_CheckParm("--plugwrapper");
 		if (c)
 		{
-			int (QDECL *thefunc) (void);
+			int(QDECL * thefunc)(void);
 			dllhandle_t *lib;
-			host_parms = parms;//not really initialising, but the filesystem needs it
-			lib = Sys_LoadLibrary(com_argv[c+1], NULL);
+			host_parms = parms; // not really initialising, but the filesystem needs it
+			lib = Sys_LoadLibrary(com_argv[c + 1], NULL);
 			if (lib)
 			{
-				thefunc = Sys_GetAddressForName(lib, com_argv[c+2]);
+				thefunc = Sys_GetAddressForName(lib, com_argv[c + 2]);
 				if (thefunc)
 					return thefunc();
 			}
@@ -3894,7 +3876,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 			c = COM_CheckParm("-plugin");
 			if (c)
 			{
-				if (c < com_argc && !strcmp(com_argv[c+1], "qcdebug"))
+				if (c < com_argc && !strcmp(com_argv[c + 1], "qcdebug"))
 					isPlugin = 2;
 				else
 					isPlugin = 1;
@@ -3906,7 +3888,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		c = COM_CheckParm("-register_types");
 		if (c)
 		{
-			Sys_DoFileAssociations(1, (c+1 < com_argc)?com_argv[c+1]:NULL);
+			Sys_DoFileAssociations(1, (c + 1 < com_argc) ? com_argv[c + 1] : NULL);
 			return EXIT_SUCCESS;
 		}
 		/*
@@ -3917,7 +3899,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 				DWORD dw = ASSOC_VERSION;
 				if (IDYES == MessageBox(NULL, "Register file associations?", "FTE First Start", MB_YESNO))
 					Sys_DoFileAssociations(0);
-				MyRegSetValue(HKEY_CURRENT_USER, "Software\\"FULLENGINENAME, "filetypes", REG_DWORD, &dw, sizeof(dw)); 
+				MyRegSetValue(HKEY_CURRENT_USER, "Software\\"FULLENGINENAME, "filetypes", REG_DWORD, &dw, sizeof(dw));
 			}
 		}
 		*/
@@ -3925,11 +3907,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 #if defined(CATCHCRASH) && defined(MULTITHREAD)
 #ifdef _MSC_VER
 		if (COM_CheckParm("-watchdog"))
-			watchdogthread = Sys_CreateThread("watchdog", watchdogthreadfunction, NULL, 0, 0); 
+			watchdogthread = Sys_CreateThread("watchdog", watchdogthreadfunction, NULL, 0, 0);
 #endif
 #endif
 
-		if (isPlugin==1)
+		if (isPlugin == 1)
 		{
 			printf("status Starting up!\n");
 			fflush(stdout);
@@ -3946,21 +3928,21 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		if (WinNT)
 		{
 			wchar_t wcwd[MAX_OSPATH];
-			if (!GetCurrentDirectoryW (sizeof(wcwd)/sizeof(wchar_t), wcwd))
-				Sys_Error ("Couldn't determine current directory");
+			if (!GetCurrentDirectoryW(sizeof(wcwd) / sizeof(wchar_t), wcwd))
+				Sys_Error("Couldn't determine current directory");
 			narrowen(cwd, sizeof(cwd), wcwd);
 		}
 		else
 		{
-			if (!GetCurrentDirectoryA (sizeof(cwd), cwd))
-				Sys_Error ("Couldn't determine current directory");
+			if (!GetCurrentDirectoryA(sizeof(cwd), cwd))
+				Sys_Error("Couldn't determine current directory");
 		}
 
 #ifdef WEBCLIENT
 		c = COM_CheckParm("-makeinstaller");
 		if (c)
 		{
-			Sys_MakeInstaller(parms.argv[c+1]);
+			Sys_MakeInstaller(parms.argv[c + 1]);
 			return EXIT_SUCCESS;
 		}
 		parms.manifest = Sys_FindManifest();
@@ -3989,11 +3971,11 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 						COPYDATASTRUCT cds;
 						cds.dwData = 0xdeadf11eu;
 						cds.cbData = strlen(qtvfile);
-						cds.lpData = (void*)qtvfile;
+						cds.lpData = (void *)qtvfile;
 						if (SendMessage(old, WM_COPYDATA, (WPARAM)GetDesktopWindow(), (LPARAM)&cds))
 						{
-							Sleep(10*1000);	//sleep for 10 secs so the real engine has a chance to open it, if the program that gave it is watching to see if we quit.
-							return EXIT_SUCCESS;	//message sent.
+							Sleep(10 * 1000);	 // sleep for 10 secs so the real engine has a chance to open it, if the program that gave it is watching to see if we quit.
+							return EXIT_SUCCESS; // message sent.
 						}
 					}
 				}
@@ -4003,8 +3985,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 					return EXIT_FAILURE;
 				}
 
-				GetModuleFileName(NULL, cwd, sizeof(cwd)-1);
-				for (e = cwd+strlen(cwd)-1; e >= cwd; e--)
+				GetModuleFileName(NULL, cwd, sizeof(cwd) - 1);
+				for (e = cwd + strlen(cwd) - 1; e >= cwd; e--)
 				{
 					if (*e == '/' || *e == '\\')
 					{
@@ -4015,19 +3997,19 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 			}
 		}
 
-		//98+/nt4+
+		// 98+/nt4+
 		if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, lang, sizeof(lang)) > 0)
 		{
 			if (GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, ctry, sizeof(ctry)) > 0)
-				Q_snprintfz(sys_language, sizeof(sys_language), "%s_%s", lang, ctry); 
+				Q_snprintfz(sys_language, sizeof(sys_language), "%s_%s", lang, ctry);
 			else
-				Q_snprintfz(sys_language, sizeof(sys_language), "%s", lang); 
+				Q_snprintfz(sys_language, sizeof(sys_language), "%s", lang);
 		}
 
 		TL_InitLanguages(parms.binarydir);
-		//tprints are now allowed
+		// tprints are now allowed
 
-		if (*cwd && cwd[strlen(cwd)-1] != '\\' && cwd[strlen(cwd)-1] != '/')
+		if (*cwd && cwd[strlen(cwd) - 1] != '\\' && cwd[strlen(cwd) - 1] != '/')
 			Q_strncatz(cwd, "/", sizeof(cwd));
 
 		parms.basedir = cwd;
@@ -4036,9 +4018,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		parms.argv = com_argv;
 
 #if !defined(CLIENTONLY) && !defined(SERVERONLY)
-		if (COM_CheckParm ("-dedicated"))
+		if (COM_CheckParm("-dedicated"))
 			isDedicated = true;
-	#ifdef SUBSERVERS
+#ifdef SUBSERVERS
 		if (COM_CheckParm("-clusterslave"))
 		{
 			isDedicated = isClusterSlave = true;
@@ -4047,31 +4029,30 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 #endif
 			SSV_SetupControlPipe(Sys_GetStdInOutStream(), false);
 		}
-	#endif
+#endif
 #endif
 
 		if (isDedicated)
 		{
 #if !defined(CLIENTONLY)
 			if (!Sys_InitTerminal())
-				Sys_Error ("Couldn't allocate dedicated server console");
+				Sys_Error("Couldn't allocate dedicated server console");
 #endif
 		}
 
 		if (!Sys_Startup_CheckMem(&parms))
-			Sys_Error ("Not enough memory free; check disk space\n");
+			Sys_Error("Not enough memory free; check disk space\n");
 
-//		FS_ChangeGame(NULL, true, true);
-//		if (Sys_CheckUpdated(bindir, sizeof(bindir)))
-//			return true;
-
+		//		FS_ChangeGame(NULL, true, true);
+		//		if (Sys_CheckUpdated(bindir, sizeof(bindir)))
+		//			return true;
 
 #ifndef CLIENTONLY
-		if (isDedicated)	//compleate denial to switch to anything else - many of the client structures are not initialized.
+		if (isDedicated) // compleate denial to switch to anything else - many of the client structures are not initialized.
 		{
 			float delay;
 
-			SV_Init (&parms);
+			SV_Init(&parms);
 
 			delay = SV_Frame();
 
@@ -4088,27 +4069,27 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 		tevent = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (!tevent)
-			Sys_Error ("Couldn't create event");
+			Sys_Error("Couldn't create event");
 
 #ifdef SERVERONLY
-		Sys_Printf ("SV_Init\n");
+		Sys_Printf("SV_Init\n");
 		SV_Init(&parms);
 #else
-		Sys_Printf ("Host_Init\n");
-		Host_Init (&parms);
+		Sys_Printf("Host_Init\n");
+		Host_Init(&parms);
 #endif
 
-		oldtime = Sys_DoubleTime ();
+		oldtime = Sys_DoubleTime();
 
-	//client console should now be initialized.
+		// client console should now be initialized.
 
-		#ifndef MINGW
-		#if _MSC_VER > 1200
+#ifndef MINGW
+#if _MSC_VER > 1200
 		Win7_TaskListInit();
-		#endif
-		#endif
+#endif
+#endif
 
-		if (isPlugin==1)
+		if (isPlugin == 1)
 		{
 			printf("status Running!\n");
 			fflush(stdout);
@@ -4122,28 +4103,28 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 #endif
 			if (isDedicated)
 			{
-	#ifndef CLIENTONLY
+#ifndef CLIENTONLY
 				float delay;
 
-			// find time passed since last cycle
-				newtime = Sys_DoubleTime ();
+				// find time passed since last cycle
+				newtime = Sys_DoubleTime();
 				time = newtime - oldtime;
 				oldtime = newtime;
 
-				delay = SV_Frame ();
+				delay = SV_Frame();
 
 				NET_Sleep(delay, false);
-	#else
+#else
 				Sys_Error("wut?");
-	#endif
+#endif
 			}
 			else
 			{
-	#ifndef SERVERONLY
+#ifndef SERVERONLY
 				double sleeptime;
-				newtime = Sys_DoubleTime ();
+				newtime = Sys_DoubleTime();
 				time = newtime - oldtime;
-				sleeptime = Host_Frame (time);
+				sleeptime = Host_Frame(time);
 				oldtime = newtime;
 
 				SetHookState(vid.activeapp);
@@ -4151,9 +4132,9 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 				/*sleep if its not yet time for a frame*/
 				if (sleeptime)
 					Sys_Sleep(sleeptime);
-	#else
+#else
 				Sys_Error("wut?");
-	#endif
+#endif
 			}
 		}
 	}
@@ -4170,10 +4151,10 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	return EXIT_FAILURE;
 }
 #ifdef _MSC_VER
-#pragma optimize( "", on)	//revert back to default optimisations again.
+#pragma optimize("", on) // revert back to default optimisations again.
 #endif
 
-#if 0	//define this if you're somehow getting windows' consle subsystem instead of the proper windows one
+#if 0 // define this if you're somehow getting windows' consle subsystem instead of the proper windows one
 int __cdecl main(void)
 {
 	char *cmdline;
@@ -4196,9 +4177,9 @@ int __cdecl main(void)
 	}
 	return WinMain(GetModuleHandle(NULL), NULL, cmdline, SW_NORMAL);
 }
-#endif 
+#endif
 
-//now queries at startup and then caches, to avoid mode changes from giving weird results.
+// now queries at startup and then caches, to avoid mode changes from giving weird results.
 qboolean Sys_GetDesktopParameters(int *width, int *height, int *bpp, int *refreshrate)
 {
 	*width = desktopsettings.width;
@@ -4225,19 +4206,16 @@ static void Sys_QueryDesktopParameters(void)
 	ReleaseDC(NULL, hdc);
 }
 
-void Sys_Sleep (double seconds)
+void Sys_Sleep(double seconds)
 {
 	Sleep(seconds * 1000);
 }
 
-
-
-
-HCURSOR	hArrowCursor, hCustomCursor;
+HCURSOR hArrowCursor, hCustomCursor;
 void *WIN_CreateCursor(const qbyte *imagedata, int width, int height, uploadfmt_t format, float hotx, float hoty, float scale)
 {
 	BITMAPV4HEADER bi;
-	DWORD x,y;
+	DWORD x, y;
 	HCURSOR hAlphaCursor = NULL;
 	ICONINFO ii;
 	HDC maindc;
@@ -4252,11 +4230,11 @@ void *WIN_CreateCursor(const qbyte *imagedata, int width, int height, uploadfmt_
 	// we should rescale scale by vid_conautoscale etc.
 	if (scale != 1)
 	{
-		int nw,nh;
+		int nw, nh;
 		qbyte *nd;
 		nw = width * scale;
 		nh = height * scale;
-		if (nw <= 0 || nh <= 0 || nw > 128 || nh > 128)	//don't go crazy.
+		if (nw <= 0 || nh <= 0 || nw > 128 || nh > 128) // don't go crazy.
 			return NULL;
 		nd = Image_ResampleTexture(format, imagedata, width, height, NULL, nw, nh);
 		width = nw;
@@ -4264,20 +4242,20 @@ void *WIN_CreateCursor(const qbyte *imagedata, int width, int height, uploadfmt_
 		imagedata = scaled = nd;
 	}
 
-	memset(&bi,0, sizeof(bi));
-	bi.bV4Size			= sizeof(bi);
-	bi.bV4Width			= width;
-	bi.bV4Height		= height;
-	bi.bV4Planes		= 1;
-	bi.bV4BitCount		= 32;
-	bi.bV4V4Compression	= BI_BITFIELDS;
+	memset(&bi, 0, sizeof(bi));
+	bi.bV4Size = sizeof(bi);
+	bi.bV4Width = width;
+	bi.bV4Height = height;
+	bi.bV4Planes = 1;
+	bi.bV4BitCount = 32;
+	bi.bV4V4Compression = BI_BITFIELDS;
 	// The following mask specification specifies a supported 32 BPP
 	// alpha format for Windows XP.
-	//FIXME: can we not just specify it as RGBA? meh.
-	bi.bV4RedMask		= 0x00FF0000;
-	bi.bV4GreenMask		= 0x0000FF00;
-	bi.bV4BlueMask		= 0x000000FF;
-	bi.bV4AlphaMask		= 0xFF000000; 
+	// FIXME: can we not just specify it as RGBA? meh.
+	bi.bV4RedMask = 0x00FF0000;
+	bi.bV4GreenMask = 0x0000FF00;
+	bi.bV4BlueMask = 0x000000FF;
+	bi.bV4AlphaMask = 0xFF000000;
 
 	// Create the DIB section with an alpha channel.
 	maindc = GetDC(mainwindow);
@@ -4290,26 +4268,26 @@ void *WIN_CreateCursor(const qbyte *imagedata, int width, int height, uploadfmt_
 		return NULL;
 	}
 
-	for (rgbadata=imagedata,y=0;y<height;y++)
+	for (rgbadata = imagedata, y = 0; y < height; y++)
 	{
-		bgradata = bgradata_start + (height-1-y)*width*4;
-		for (x=0;x<width;x++)
+		bgradata = bgradata_start + (height - 1 - y) * width * 4;
+		for (x = 0; x < width; x++)
 		{
 			bgradata[0] = rgbadata[2];
 			bgradata[1] = rgbadata[1];
 			bgradata[2] = rgbadata[0];
 			bgradata[3] = rgbadata[3];
-			bgradata+=4;
-			rgbadata+=4;
+			bgradata += 4;
+			rgbadata += 4;
 		}
 	}
 
 	BZ_Free(scaled);
 
-	ii.fIcon = FALSE;  // Change fIcon to TRUE to create an alpha icon
+	ii.fIcon = FALSE; // Change fIcon to TRUE to create an alpha icon
 	ii.xHotspot = hotx;
 	ii.yHotspot = hoty;
-	ii.hbmMask = CreateBitmap(width,height,1,1,NULL);
+	ii.hbmMask = CreateBitmap(width, height, 1, 1, NULL);
 
 	// Create the alpha cursor with the alpha DIB section.
 	hAlphaCursor = CreateIconIndirect(&ii);
@@ -4322,13 +4300,13 @@ void *WIN_CreateCursor(const qbyte *imagedata, int width, int height, uploadfmt_
 
 qboolean WIN_SetCursor(void *cursor)
 {
-	static POINT		current_pos;	//static to avoid bugs in vista(32) with largeaddressaware (this is fixed in win7). fixed exe base address prevents this from going above 2gb.
+	static POINT current_pos; // static to avoid bugs in vista(32) with largeaddressaware (this is fixed in win7). fixed exe base address prevents this from going above 2gb.
 
 	hCustomCursor = cursor;
 
-	//move the cursor to ensure the WM_SETCURSOR thing is invoked properly.
-	//this ensures all the nastyness of random programs randomly setting the current global cursor is handled by microsoft's code instead of mine.
-	//if you're using rawinput there'll be no lost inpuit problems, yay...
+	// move the cursor to ensure the WM_SETCURSOR thing is invoked properly.
+	// this ensures all the nastyness of random programs randomly setting the current global cursor is handled by microsoft's code instead of mine.
+	// if you're using rawinput there'll be no lost inpuit problems, yay...
 	GetCursorPos(&current_pos);
 	SetCursorPos(current_pos.x, current_pos.y);
 	return true;
@@ -4337,8 +4315,6 @@ void WIN_DestroyCursor(void *cursor)
 {
 	DestroyIcon(cursor);
 }
-
-
 
 /*
 static HRESULT STDMETHODCALLTYPE DD_QueryInterface(IDropTarget *This, REFIID riid, void **ppvObject) {return E_NOINTERFACE;}
@@ -4376,9 +4352,8 @@ static struct IDropTargetVtbl MyDropTargetVtbl =
 static IDropTarget MyDropTarget = {&MyDropTargetVtbl};*/
 void WIN_WindowCreated(HWND window)
 {
-//	OleInitialize(NULL);
-//	if (FAILED(RegisterDragDrop(window, &MyDropTarget)))
-//		Con_Printf("RegisterDragDrop failed\n");
+	//	OleInitialize(NULL);
+	//	if (FAILED(RegisterDragDrop(window, &MyDropTarget)))
+	//		Con_Printf("RegisterDragDrop failed\n");
 	DragAcceptFiles(window, TRUE);
 }
-#endif
