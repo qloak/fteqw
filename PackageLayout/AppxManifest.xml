@@ -1,23 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
-         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
-         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-         IgnorableNamespaces="uap rescap">
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    IgnorableNamespaces="uap">
 
-  <Identity Name="FTEQuake"
-            Publisher="CN=FTEQuakeTestCert"
+  <!-- Must match your signing cert CN -->
+  <Identity Name="FTEQuake.UWP"
+            Publisher="CN=FTEQuakeTest"
             Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>FTEQuake Engine</DisplayName>
-    <PublisherDisplayName>qloak</PublisherDisplayName>
+    <DisplayName>FTE Quake</DisplayName>
+    <PublisherDisplayName>FTEQW Dev</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
   <Dependencies>
+    <!-- RS5 baseline: 17763 is the minimum Xbox accepts -->
     <TargetDeviceFamily Name="Windows.Universal"
-                        MinVersion="10.0.0.0"
-                        MaxVersionTested="10.0.26100.0" />
+                        MinVersion="10.0.17763.0"
+                        MaxVersionTested="10.0.22621.0" />
   </Dependencies>
 
   <Resources>
@@ -25,19 +27,26 @@
   </Resources>
 
   <Applications>
-    <!-- Vanilla FTEQuake -->
-    <Application Id="FTEQuake"
-                 Executable="fteqw.exe"
-                 EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="FTEQuake"
-                          Description="FTE QuakeWorld/Quake engine"
-                          BackgroundColor="black"
-                          Square150x150Logo="Assets\Square150x150Logo.png"
-                          Square44x44Logo="Assets\Square44x44Logo.png" />
+    <Application Id="App"
+                 Executable="$targetnametoken$.exe"
+                 EntryPoint="Windows.ApplicationModel.Core.CoreApplication">
+      <uap:VisualElements
+          DisplayName="FTE Quake"
+          Description="Quake engine port for UWP/Xbox"
+          Square150x150Logo="Assets\Square150x150Logo.png"
+          Square44x44Logo="Assets\Square44x44Logo.png"
+          BackgroundColor="transparent">
+        <!-- Optional wide tile. REMOVE this if you don’t actually have the PNG. -->
+        <!-- <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" /> -->
+      </uap:VisualElements>
     </Application>
   </Applications>
 
   <Capabilities>
-    <rescap:Capability Name="runFullTrust"/>
+    <!-- Minimal safe capabilities for Xbox Dev Mode -->
+    <uap:Capability Name="removableStorage" />
+    <uap:Capability Name="picturesLibrary" />
+    <uap:Capability Name="videosLibrary" />
+    <uap:Capability Name="musicLibrary" />
   </Capabilities>
 </Package>

@@ -1,0 +1,45 @@
+# MSIX Conversion Accelerator
+
+PackageName: FTE Quake
+
+PublisherName: FTEQW Dev
+
+PackageVersion: 1.0.1.0
+
+EligibleForConversion: Yes
+
+ConversionStatus: Package Created. Need Validation
+
+RemediationApproach:
+- SequenceNumber: 1
+  Issue:
+    Description: Capabilities Required
+  Fix:
+    FixType: Capability
+    FixDetails:
+      Capabilities:
+      - Name: removableStorage
+        ApplicationIds:
+        - '*'
+      - Name: picturesLibrary
+        ApplicationIds:
+        - '*'
+      - Name: videosLibrary
+        ApplicationIds:
+        - '*'
+      - Name: musicLibrary
+        ApplicationIds:
+        - '*'
+
+Edition: Microsoft Windows 11 Pro
+
+MinimumOSVersion: 24H2
+
+MinimumOSBuild: 26100.6584
+
+Architecture: 64
+
+MSIXConversionToolVersion: 1.2024.405.0
+
+AcceleratorVersion: 1.0.0
+

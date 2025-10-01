@@ -29,6 +29,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <conio.h>
 #include <io.h>
 #include <direct.h>
+#include <stdlib.h>
+#include <wchar.h>
+
+#ifndef APPMODEL_ERROR_NO_PACKAGE
+#define APPMODEL_ERROR_NO_PACKAGE 15700L
+#endif
 #include "pr_common.h"
 #include "fs.h"
 
@@ -49,6 +55,7 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1; // 13.35+
 static void Sys_InitClock(void);
 static void Sys_ClockType_Changed(cvar_t* var, char* oldval);
 static void Sys_ClockPrecision_Changed(cvar_t* var, char* oldval);
+static void Sys_OverrideWorkingDirectoryForPackages(char* cwd, size_t size);
 
 #ifdef WINRT
 #error "UWP builds must use sys_winrt.cpp instead of sys_win.c"
@@ -2590,6 +2597,119 @@ void Win7_TaskListInit(void)
 		cdl->lpVtbl->Release(cdl);
 	}
 }
+
+static void Sys_OverrideWorkingDirectoryForPackages(char* cwd, size_t size)
+{
+	static qboolean lookedUp = false;
+	static LONG(WINAPI * pGetCurrentPackageFamilyName)(UINT32*, PWSTR) = NULL;
+
+	if (!cwd || !size)
+		return;
+
+	if (!lookedUp)
+	{
+		dllfunction_t packagefuncs[] = {
+				{(void**)&pGetCurrentPackageFamilyName, "GetCurrentPackageFamilyName"},
+				{NULL, NULL}
+		};
+		Sys_LoadLibrary("kernel32.dll", packagefuncs);
+		lookedUp = true;
+	}
+
+	if (!pGetCurrentPackageFamilyName)
+		return;
+
+	{
+		UINT32 familyLen = 0;
+		LONG status = pGetCurrentPackageFamilyName(&familyLen, NULL);
+		if (status == APPMODEL_ERROR_NO_PACKAGE)
+			return;
+		if (status != ERROR_INSUFFICIENT_BUFFER || !familyLen)
+			return;
+
+		PWSTR family = (PWSTR)malloc(sizeof(WCHAR) * familyLen);
+		if (!family)
+			return;
+
+		status = pGetCurrentPackageFamilyName(&familyLen, family);
+		if (status != ERROR_SUCCESS || !family[0])
+		{
+			free(family);
+			return;
+		}
+
+		if (!pSHGetSpecialFolderPathW)
+		{
+			free(family);
+			return;
+		}
+
+		{
+			wchar_t localAppData[MAX_PATH];
+			if (!pSHGetSpecialFolderPathW(NULL, localAppData, CSIDL_LOCAL_APPDATA, FALSE))
+			{
+				free(family);
+				return;
+			}
+
+			{
+				const wchar_t packagesSuffix[] = L"\\Packages\\";
+				const wchar_t localStateSuffix[] = L"\\LocalState\\games";
+				size_t baseLen = wcslen(localAppData);
+				size_t familyLenActual = wcslen(family);
+				size_t totalLen = baseLen + wcslen(packagesSuffix) + familyLenActual + wcslen(localStateSuffix) + 2;
+				wchar_t* combined = (wchar_t*)malloc(sizeof(WCHAR) * totalLen);
+				if (!combined)
+				{
+					free(family);
+					return;
+				}
+
+				combined[0] = L'\0';
+				wcscat(combined, localAppData);
+				wcscat(combined, packagesSuffix);
+				wcscat(combined, family);
+				wcscat(combined, localStateSuffix);
+
+				{
+					size_t len = wcslen(combined);
+					if (!len)
+					{
+						free(combined);
+						free(family);
+						return;
+					}
+
+					if (len + 1 < totalLen && combined[len - 1] != L'\\' && combined[len - 1] != L'/')
+					{
+						combined[len] = L'\\';
+						combined[len + 1] = L'\0';
+						len++;
+					}
+
+					if (len && (combined[len - 1] == L'\\' || combined[len - 1] == L'/'))
+					{
+						wchar_t saved = combined[len - 1];
+						combined[len - 1] = L'\0';
+						CreateDirectoryW(combined, NULL);
+						combined[len - 1] = saved;
+					}
+
+					narrowen(cwd, size, combined);
+					for (char* it = cwd; *it; ++it)
+					{
+						if (*it == '\\')
+							*it = '/';
+					}
+				}
+
+				free(combined);
+			}
+
+			free(family);
+		}
+	}
+}
 #endif
 
 // using this like posix' access function, but with much more code, microsoftisms, and no errno codes/info
@@ -3937,6 +4057,8 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 			if (!GetCurrentDirectoryA(sizeof(cwd), cwd))
 				Sys_Error("Couldn't determine current directory");
 		}
+
+		Sys_OverrideWorkingDirectoryForPackages(cwd, sizeof(cwd));
 
 #ifdef WEBCLIENT
 		c = COM_CheckParm("-makeinstaller");

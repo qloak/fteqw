@@ -1,0 +1,11 @@
+crash
+crash
+crashme
+help
+cmd
+compile
+quit
+crashme
+crashme
+crashme
+crashme

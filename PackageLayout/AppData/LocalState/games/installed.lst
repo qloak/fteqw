@@ -1,4 +1,0 @@
-version 2
-set updatemode "1"
-set declined ""
-source "https://fte.triptohell.info/downloadables.php?game=Q1" "enabled"

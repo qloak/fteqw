@@ -498,6 +498,11 @@ void CL_Quit_f (void)
 	Sys_Quit ();
 }
 
+static void CL_Crash_f(void)
+{
+	Sys_Error("Intentional test crash via 'crashme' command");
+}
+
 #ifdef NQPROT
 void CL_ConnectToDarkPlaces(char *challenge, netadr_t *adr)
 {
@@ -5996,7 +6001,7 @@ void CL_Init (void)
 
 	Cmd_AddCommand ("cl_status", CL_Status_f);
 	Cmd_AddCommandD ("quit", CL_Quit_f, "Use this command when you get angry. Does not save any cvars. Use cfg_save to save settings, or use the menu for a prompt.");
-
+	Cmd_AddCommandD("crashme", CL_Crash_f, "Force an intentional crash to test LocalState logging");
 #if defined(CL_MASTER) && defined(HAVE_PACKET)
 	Cmd_AddCommandAD ("connectbr", CL_ConnectBestRoute_f, CL_Connect_c, "connect address:port\nConnect to a qw server using the best route we can detect.");
 #endif

@@ -116,6 +116,8 @@ static std::atomic<double> g_cachedScale{1.0};
 static std::atomic<bool> g_windowVisible{true};
 static std::atomic<bool> g_windowActivated{true};
 
+static vfsfile_t* g_logFile = nullptr;
+
 static WinRTCoreWindow g_coreWindow{nullptr};
 static UnknownPtr g_coreWindowUnknown;
 static winrt::event_revoker<WinRTCoreWindow> g_sizeChangedRevoker;
@@ -542,18 +544,28 @@ static void SysWinRT_DebugOutput(std::string_view message)
         fflush(stderr);
 }
 
-static void SysWinRT_Logv(const char *prefix, const char *fmt, va_list args)
+static void SysWinRT_Logv(const char* prefix, const char* fmt, va_list args)
 {
-        char formatted[2048];
-        Q_vsnprintfz(formatted, sizeof(formatted), fmt, args);
+    char formatted[2048];
+    Q_vsnprintfz(formatted, sizeof(formatted), fmt, args);
 
-        std::string text;
-        if (prefix && *prefix)
-                text.append(prefix);
-        text.append(formatted);
+    std::string text;
+    if (prefix && *prefix)
+        text.append(prefix);
+    text.append(formatted);
+    text.push_back('\n');
 
-        std::lock_guard<std::mutex> guard(g_logMutex);
-        SysWinRT_DebugOutput(text);
+    std::lock_guard<std::mutex> guard(g_logMutex);
+
+    // existing debug output
+    SysWinRT_DebugOutput(text);
+
+    // NEW: also append to LocalState log file
+    if (g_logFile)
+    {
+        g_logFile->WriteBytes(g_logFile, text.c_str(), (int)text.size());
+        g_logFile->Flush(g_logFile); // ensure it's written
+    }
 }
 
 static std::wstring SysWinRT_ToWide(const char *utf8)
@@ -963,6 +975,8 @@ void VARGS Sys_Error(const char *error, ...)
         catch (const winrt::hresult_error &)
         {
         }
+        if (g_logFile)
+            g_logFile->Flush(g_logFile);
         abort();
 }
 
@@ -1052,7 +1066,14 @@ void Sys_CloseLibrary(dllhandle_t *lib)
 
 void Sys_Init(void)
 {
-        SysWinRT_EnsureRuntime();
+    try {
+        StorageFolder local = ApplicationData::Current().LocalFolder();
+        std::wstring path = local.Path().c_str();
+        path += L"\\engine.log";
+
+        std::string utf8 = SysWinRT_ToUtf8(path);
+        g_logFile = VFS_Open(utf8.c_str(), "a"); // use regular VFS_Open here
+    }
         if (!g_localStatePath.empty())
         {
                 g_localStatePathUtf8 = SysWinRT_ToUtf8(g_localStatePath);
