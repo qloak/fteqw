@@ -917,30 +917,49 @@ extern "C" void FS_AddGameDirectory(const char *dir);
 
 void SysWinRT_InitRuntime()
 {
+        g_localStatePath.clear();
         try
         {
-                auto installFolder = Windows::ApplicationModel::Package::Current->InstalledLocation;
-                std::wstring path(installFolder->Path->Data());
+                auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
+                if (localFolder)
+                {
+                        std::wstring path(localFolder->Path->Data());
+                        SysWinRT_NormalizeSlashes(path);
+                        if (!path.empty() && path.back() != L'\\')
+                                path.push_back(L'\\');
+                        path.append(L"games");
 
-                g_localStatePath = Sys_WideToUTF8(path.c_str());
-                g_localStatePath += "/games";
+                        SetLastError(0);
+                        if (!CreateDirectoryW(path.c_str(), nullptr))
+                        {
+                                DWORD createError = GetLastError();
+                                if (createError != ERROR_ALREADY_EXISTS)
+                                        Sys_Printf("Failed to create LocalState games directory (error %lu)\n", createError);
+                        }
 
-                Sys_Printf("Using InstalledLocation path override: %s\n", g_localStatePath.c_str());
+                        g_localStatePath = std::move(path);
 
-                // 🔹 Force FreeHL as active gamedir
-                FS_AddGameDirectory("/games");
+                        std::string utf8Path = SysWinRT_ToUtf8(g_localStatePath);
+                        if (!utf8Path.empty())
+                                Sys_Printf("Using LocalState path override: %s\n", utf8Path.c_str());
+                        else
+                                Sys_Printf("Using LocalState path override.\n");
+                }
         }
         catch (Platform::Exception ^ ex)
         {
-                Sys_Printf("Failed to get InstalledLocation, defaulting to LocalState.\n");
-
-                auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
-                std::wstring path(localFolder->Path->Data());
-                g_localStatePath = Sys_WideToUTF8(path.c_str());
-                g_localStatePath += "/games";
-
-                FS_AddGameDirectory("/games");
+                std::wstring message(ex->Message->Data());
+                std::string utf8Message = SysWinRT_ToUtf8(message);
+                Sys_Printf("Failed to access LocalState folder: %s\n", utf8Message.c_str());
+                g_localStatePath.clear();
         }
+        catch (const winrt::hresult_error &error)
+        {
+                Sys_Printf("Failed to access LocalState folder: 0x%08x\n", static_cast<unsigned int>(error.code()));
+                g_localStatePath.clear();
+        }
+
+        FS_AddGameDirectory("/games");
 }
 
 static void SysWinRT_EnsureRuntime()
