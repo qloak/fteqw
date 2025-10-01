@@ -2692,6 +2692,7 @@ static void Sys_OverrideWorkingDirectoryForPackages(char* cwd, size_t size)
                                                 wchar_t saved = combined[len - 1];
                                                 combined[len - 1] = L'\0';
                                                 CreateDirectoryW(combined, NULL);
+                                                SetCurrentDirectoryW(combined);
                                                 combined[len - 1] = saved;
                                         }
 

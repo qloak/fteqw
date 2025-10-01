@@ -918,6 +918,7 @@ extern "C" void FS_AddGameDirectory(const char *dir);
 void SysWinRT_InitRuntime()
 {
         g_localStatePath.clear();
+        g_localStatePathUtf8.clear();
         try
         {
                 auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
@@ -928,18 +929,43 @@ void SysWinRT_InitRuntime()
                         if (!path.empty() && path.back() != L'\\')
                                 path.push_back(L'\\');
                         path.append(L"games");
+                        if (path.empty() || path.back() != L'\\')
+                                path.push_back(L'\\');
 
-                        SetLastError(0);
-                        if (!CreateDirectoryW(path.c_str(), nullptr))
+                        std::wstring workingDir = path;
+                        if (!workingDir.empty())
+                                workingDir.pop_back();
+
+                        if (!workingDir.empty())
                         {
-                                DWORD createError = GetLastError();
-                                if (createError != ERROR_ALREADY_EXISTS)
-                                        Sys_Printf("Failed to create LocalState games directory (error %lu)\n", createError);
+                                SetLastError(0);
+                                if (!CreateDirectoryW(workingDir.c_str(), nullptr))
+                                {
+                                        DWORD createError = GetLastError();
+                                        if (createError != ERROR_ALREADY_EXISTS)
+                                                Sys_Printf("Failed to create LocalState games directory (error %lu)\n", createError);
+                                }
+
+                                if (!SetCurrentDirectoryW(workingDir.c_str()))
+                                {
+                                        DWORD cwdError = GetLastError();
+                                        if (cwdError)
+                                                Sys_Printf("Failed to change to LocalState games directory (error %lu)\n", cwdError);
+                                }
                         }
 
                         g_localStatePath = std::move(path);
 
                         std::string utf8Path = SysWinRT_ToUtf8(g_localStatePath);
+                        for (auto &ch : utf8Path)
+                        {
+                                if (ch == '\\')
+                                        ch = '/';
+                        }
+                        if (!utf8Path.empty() && utf8Path.back() != '/')
+                                utf8Path.push_back('/');
+                        g_localStatePathUtf8 = utf8Path;
+
                         if (!utf8Path.empty())
                                 Sys_Printf("Using LocalState path override: %s\n", utf8Path.c_str());
                         else
@@ -952,11 +978,13 @@ void SysWinRT_InitRuntime()
                 std::string utf8Message = SysWinRT_ToUtf8(message);
                 Sys_Printf("Failed to access LocalState folder: %s\n", utf8Message.c_str());
                 g_localStatePath.clear();
+                g_localStatePathUtf8.clear();
         }
         catch (const winrt::hresult_error &error)
         {
                 Sys_Printf("Failed to access LocalState folder: 0x%08x\n", static_cast<unsigned int>(error.code()));
                 g_localStatePath.clear();
+                g_localStatePathUtf8.clear();
         }
 
         FS_AddGameDirectory("/games");
@@ -1072,16 +1100,10 @@ void Sys_CloseLibrary(dllhandle_t *lib)
 void Sys_Init(void)
 {
         SysWinRT_EnsureRuntime();
-        if (!g_localStatePath.empty())
+        if (!g_localStatePathUtf8.empty())
         {
-                g_localStatePathUtf8 = SysWinRT_ToUtf8(g_localStatePath);
-                if (!g_localStatePathUtf8.empty())
-                {
-                        if (g_localStatePathUtf8.back() != '\\' && g_localStatePathUtf8.back() != '/')
-                                g_localStatePathUtf8.push_back('\\');
-                        host_parms.basedir = g_localStatePathUtf8.c_str();
-                        host_parms.binarydir = host_parms.basedir;
-                }
+                host_parms.basedir = g_localStatePathUtf8.c_str();
+                host_parms.binarydir = host_parms.basedir;
         }
         Cmd_AddCommandD("sys_openfile", SysWinRT_OpenFilePicker_f, "Select a file to open/install/etc.");
         Sys_Printf("WinRT runtime initialised\n");
