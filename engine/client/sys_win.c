@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #include "pr_common.h"
 #include "fs.h"
+#include "sys_win_common.h"
 
 #ifdef _MSC_VER
 #define MSVC_SEH
@@ -96,8 +97,6 @@ static void Sys_QueryDesktopParameters(void);
 // used to do special things with awkward windows versions.
 int qwinvermaj;
 int qwinvermin;
-
-char* sys_argv[MAX_NUM_ARGVS];
 
 #ifdef RESTARTTEST
 jmp_buf restart_jmpbuf;
@@ -338,7 +337,7 @@ static HANDLE hinput, houtput;
 
 HANDLE qwclsemaphore;
 
-static HANDLE tevent;
+HANDLE tevent;
 
 int VARGS Sys_DebugLog(char* file, char* fmt, ...)
 {
@@ -3177,7 +3176,7 @@ void VARGS Signal_Error_Handler(int i)
 
 extern char sys_language[64];
 
-static int Sys_ProcessCommandline(char** argv, int maxargc, char* argv0)
+int Sys_ProcessCommandline(char** argv, int maxargc, char* argv0)
 {
 	int argc = 0, i;
 	wchar_t* wc = GetCommandLineW();
@@ -3856,9 +3855,8 @@ int WINAPI
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//    MSG				msg;
-	quakeparms_t parms;
-	double time, oldtime, newtime;
-	char cwd[1024], bindir[1024];
+        quakeparms_t parms;
+        char cwd[1024], bindir[1024];
 	const char* qtvfile = NULL;
 	char lang[32];
 	char ctry[32];
@@ -4154,111 +4152,8 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 #endif
 #endif
 
-		if (isDedicated)
-		{
-#if !defined(CLIENTONLY)
-			if (!Sys_InitTerminal())
-				Sys_Error("Couldn't allocate dedicated server console");
-#endif
-		}
+		return Sys_Windows_Run(&parms);
 
-		if (!Sys_Startup_CheckMem(&parms))
-			Sys_Error("Not enough memory free; check disk space\n");
-
-		//		FS_ChangeGame(NULL, true, true);
-		//		if (Sys_CheckUpdated(bindir, sizeof(bindir)))
-		//			return true;
-
-#ifndef CLIENTONLY
-		if (isDedicated) // compleate denial to switch to anything else - many of the client structures are not initialized.
-		{
-			float delay;
-
-			SV_Init(&parms);
-
-			delay = SV_Frame();
-
-			while (1)
-			{
-				if (!isDedicated)
-					Sys_Error("Dedicated was cleared");
-				NET_Sleep(delay, false);
-				delay = SV_Frame();
-			}
-			return EXIT_FAILURE;
-		}
-#endif
-
-		tevent = CreateEvent(NULL, FALSE, FALSE, NULL);
-		if (!tevent)
-			Sys_Error("Couldn't create event");
-
-#ifdef SERVERONLY
-		Sys_Printf("SV_Init\n");
-		SV_Init(&parms);
-#else
-		Sys_Printf("Host_Init\n");
-		Host_Init(&parms);
-#endif
-
-		oldtime = Sys_DoubleTime();
-
-		// client console should now be initialized.
-
-#ifndef MINGW
-#if _MSC_VER > 1200
-		Win7_TaskListInit();
-#endif
-#endif
-
-		if (isPlugin == 1)
-		{
-			printf("status Running!\n");
-			fflush(stdout);
-		}
-
-		/* main window message loop */
-		while (1)
-		{
-#ifdef CATCHCRASH
-			watchdogframe++;
-#endif
-			if (isDedicated)
-			{
-#ifndef CLIENTONLY
-				float delay;
-
-				// find time passed since last cycle
-				newtime = Sys_DoubleTime();
-				time = newtime - oldtime;
-				oldtime = newtime;
-
-				delay = SV_Frame();
-
-				NET_Sleep(delay, false);
-#else
-				Sys_Error("wut?");
-#endif
-			}
-			else
-			{
-#ifndef SERVERONLY
-				double sleeptime;
-				newtime = Sys_DoubleTime();
-				time = newtime - oldtime;
-				sleeptime = Host_Frame(time);
-				oldtime = newtime;
-
-				SetHookState(vid.activeapp);
-
-				/*sleep if its not yet time for a frame*/
-				if (sleeptime)
-					Sys_Sleep(sleeptime);
-#else
-				Sys_Error("wut?");
-#endif
-			}
-		}
 	}
 #ifdef CATCHCRASH
 #ifdef MSVC_SEH

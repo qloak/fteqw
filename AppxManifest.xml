@@ -18,8 +18,8 @@
   </Resources>
   <Applications>
     <Application Id="App"
-                 Executable="fteqw.exe"
-                 EntryPoint="Windows.FullTrustApplication">
+                 Executable="$targetnametoken$.exe"
+                 EntryPoint="FTEWinRT.App">
       <uap:VisualElements DisplayName="FTEQuake"
                           Description="FTEQuake Engine UWP"
                           BackgroundColor="black"
