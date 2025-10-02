@@ -554,6 +554,8 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
                         engine/client/cd_win.c
                         engine/client/snd_xaudio.c
                         engine/client/sys_winrt.cpp
+                        engine/client/sys_win_common.cpp
+                        engine/client/sys_winrt_app.cpp
                 )
         ELSE()
                 SET(FTE_LIBS ${FTE_LIBS} ole32 gdi32 wsock32 winmm dxguid)
@@ -572,6 +574,7 @@ ELSEIF(WIN32 AND NOT FTE_USE_SDL)
                         engine/client/snd_win.c
                         engine/client/snd_xaudio.c
                         engine/client/sys_win.c
+                        engine/client/sys_win_common.cpp
                 )
         ENDIF()
         SET(FTE_ARCH_FILES ${FTE_ARCH_FILES}

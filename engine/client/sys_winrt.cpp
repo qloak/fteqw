@@ -714,7 +714,7 @@ static void SysWinRT_HandleResumed()
         SysWinRT_UpdateActivity(g_windowVisible.load(), g_windowActivated.load());
 }
 
-static void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
+void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
 {
         if (!window)
                 return;
@@ -898,6 +898,33 @@ static void SysWinRT_AttachWindow(WinRTCoreWindow const &window)
                                                                                              delta, 0.0f);
                                                            });
 }
+void SysWinRT_SetupApplicationEvents()
+{
+        try
+        {
+                g_suspendingRevoker = CoreApplication::Suspending(winrt::auto_revoke,
+                                                                   [](IInspectable const &, SuspendingEventArgs const &)
+                                                                   {
+                                                                           SysWinRT_HandleSuspended();
+                                                                   });
+        }
+        catch (const winrt::hresult_error &)
+        {
+        }
+
+        try
+        {
+                g_resumingRevoker = CoreApplication::Resuming(winrt::auto_revoke,
+                                                               [](IInspectable const &, IInspectable const &)
+                                                               {
+                                                                       SysWinRT_HandleResumed();
+                                                               });
+        }
+        catch (const winrt::hresult_error &)
+        {
+        }
+}
+
 
 static WinRTCoreWindow SysWinRT_TryGetWindow()
 {
